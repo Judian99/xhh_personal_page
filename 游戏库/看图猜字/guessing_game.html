@@ -35,22 +35,18 @@
         }
         
         .logo {
-            width: 80px;
-            height: 80px;
-            margin: 0 auto 20px;
-            border-radius: 50%;
+            width: 60px;
+            height: 60px;
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            z-index: 1000;
             box-shadow: 0 8px 25px rgba(0,0,0,0.15);
             transition: all 0.3s ease;
-            animation: logoSpin 8s linear infinite;
-        }
-        
-        @keyframes logoSpin {
-            from { transform: rotate(0deg); }
-            to { transform: rotate(360deg); }
         }
         
         .logo:hover {
-            transform: scale(1.1) rotate(15deg);
+            transform: scale(1.1);
             box-shadow: 0 12px 35px rgba(0,0,0,0.25);
         }
         
@@ -222,10 +218,12 @@
     </style>
 </head>
 <body class="flex items-center justify-center p-4">
+    <!-- 固定在左上角的Logo -->
+    <img src="logo.png" alt="游戏Logo" class="logo">
+    
     <div class="game-container w-full max-w-6xl p-8 text-center relative">
         <!-- 首页 -->
         <div id="home-page">
-            <img src="logo.png" alt="游戏Logo" class="logo">
             <h1 class="title-text mb-8">看图猜字</h1>
             <p class="text-2xl mb-12 text-gray-700 font-medium">共有11个关卡，看看你能猜对几个！</p>
             <button onclick="startGame()" class="start-btn text-white text-2xl px-12 py-5 rounded-full font-bold">
