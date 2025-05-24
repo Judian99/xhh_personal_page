@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>看图猜字</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Framer Motion CDN -->
+    <script src="https://unpkg.com/framer-motion@10.16.4/dist/framer-motion.js"></script>
+    <!-- Font Awesome CDN -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Comic+Neue:wght@300;400;700&family=Kalam:wght@300;400;700&display=swap');
+        
+        body {
+            font-family: 'Comic Neue', 'Kalam', cursive;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+        
+        .game-container {
+            backdrop-filter: blur(20px);
+            background: rgba(255, 255, 255, 0.85);
+            border-radius: 25px;
+            box-shadow: 0 20px 60px rgba(31, 38, 135, 0.25);
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            animation: containerFloat 6s ease-in-out infinite;
+        }
+        
+        @keyframes containerFloat {
+            0%, 100% { transform: translateY(0px) rotate(0deg); }
+            50% { transform: translateY(-10px) rotate(0.5deg); }
+        }
+        
+        .logo {
+            width: 80px;
+            height: 80px;
+            margin: 0 auto 20px;
+            border-radius: 50%;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+            transition: all 0.3s ease;
+            animation: logoSpin 8s linear infinite;
+        }
+        
+        @keyframes logoSpin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+        
+        .logo:hover {
+            transform: scale(1.1) rotate(15deg);
+            box-shadow: 0 12px 35px rgba(0,0,0,0.25);
+        }
+        
+        .image-container {
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            background: linear-gradient(145deg, #ffffff, #f0f0f0);
+        }
+        
+        .image-container:hover {
+            transform: scale(1.05) rotate(2deg);
+            box-shadow: 0 15px 40px rgba(0,0,0,0.2);
+        }
+        
+        .answer-reveal {
+            animation: answerPop 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+        }
+        
+        @keyframes answerPop {
+            0% { 
+                opacity: 0; 
+                transform: scale(0.3) rotate(-10deg); 
+            }
+            70% { 
+                transform: scale(1.1) rotate(2deg); 
+            }
+            100% { 
+                opacity: 1; 
+                transform: scale(1) rotate(0deg); 
+            }
+        }
+        
+        .title-text {
+            font-size: 4.5rem;
+            font-weight: 700;
+            text-shadow: 4px 4px 0 rgba(0,0,0,0.1);
+            background: linear-gradient(45deg, #ff6b6b, #4ecdc4, #45b7d1, #96ceb4);
+            background-size: 300% 300%;
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            animation: rainbowShift 3s ease-in-out infinite;
+        }
+        
+        @keyframes rainbowShift {
+            0%, 100% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+        }
+        
+        .start-btn {
+            background: linear-gradient(45deg, #ff6b6b, #4ecdc4);
+            box-shadow: 0 8px 25px rgba(255, 107, 107, 0.4);
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .start-btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+            transition: left 0.5s;
+        }
+        
+        .start-btn:hover::before {
+            left: 100%;
+        }
+        
+        .start-btn:hover {
+            transform: translateY(-5px) scale(1.05);
+            box-shadow: 0 15px 35px rgba(255, 107, 107, 0.6);
+        }
+        
+        .next-btn {
+            background: linear-gradient(45deg, #96ceb4, #ffeaa7);
+            box-shadow: 0 8px 25px rgba(150, 206, 180, 0.4);
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .next-btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+            transition: left 0.5s;
+        }
+        
+        .next-btn:hover::before {
+            left: 100%;
+        }
+        
+        .next-btn:hover {
+            transform: translateY(-5px) scale(1.05);
+            box-shadow: 0 15px 35px rgba(150, 206, 180, 0.6);
+        }
+        
+        .floating-text {
+            font-size: 3rem;
+            font-weight: 700;
+            background: linear-gradient(45deg, #667eea, #764ba2, #667eea);
+            background-size: 200% 200%;
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            animation: textFloat 4s ease-in-out infinite, gradientMove 3s linear infinite;
+            text-shadow: 2px 2px 20px rgba(102, 126, 234, 0.3);
+        }
+        
+        @keyframes textFloat {
+            0%, 100% { 
+                transform: translateY(0px) scale(1);
+                opacity: 0.8;
+            }
+            50% { 
+                transform: translateY(-20px) scale(1.02);
+                opacity: 1;
+            }
+        }
+        
+        @keyframes gradientMove {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+        
+        .sparkle {
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            background: radial-gradient(circle, #fff, transparent);
+            border-radius: 50%;
+            animation: sparkleAnimation 2s linear infinite;
+        }
+        
+        @keyframes sparkleAnimation {
+            0% { 
+                opacity: 0;
+                transform: scale(0) rotate(0deg);
+            }
+            50% { 
+                opacity: 1;
+                transform: scale(1) rotate(180deg);
+            }
+            100% { 
+                opacity: 0;
+                transform: scale(0) rotate(360deg);
+            }
+        }
+        
+        .level-title {
+            font-size: 3rem;
+            color: #2d3748;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
+            animation: titleBounce 2s ease-in-out infinite;
+        }
+        
+        @keyframes titleBounce {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-5px); }
+        }
+    </style>
+</head>
+<body class="flex items-center justify-center p-4">
+    <div class="game-container w-full max-w-6xl p-8 text-center relative">
+        <!-- 首页 -->
+        <div id="home-page">
+            <img src="logo.png" alt="游戏Logo" class="logo">
+            <h1 class="title-text mb-8">看图猜字</h1>
+            <p class="text-2xl mb-12 text-gray-700 font-medium">共有11个关卡，看看你能猜对几个！</p>
+            <button onclick="startGame()" class="start-btn text-white text-2xl px-12 py-5 rounded-full font-bold">
+                <i class="fas fa-play mr-3"></i>开始游戏
+            </button>
+        </div>
+        
+        <!-- 游戏关卡 -->
+        <div id="game-page" class="hidden">
+            <h2 id="level-title" class="level-title font-bold mb-8"></h2>
+            <div class="flex flex-wrap justify-center gap-8 mb-12">
+                <div class="image-container w-full md:w-5/12 bg-white p-6 rounded-2xl shadow-lg">
+                    <img id="image1" src="" alt="题目图片1" class="w-full h-auto rounded-xl">
+                </div>
+                <div class="image-container w-full md:w-5/12 bg-white p-6 rounded-2xl shadow-lg">
+                    <img id="image2" src="" alt="题目图片2" class="w-full h-auto rounded-xl">
+                </div>
+            </div>
+            
+            <!-- 答案显示区域 -->
+            <div id="answer-section" class="hidden mb-8">
+                <div class="bg-gradient-to-br from-purple-900 to-blue-900 rounded-2xl p-8 mx-auto max-w-2xl answer-reveal">
+                    <p id="answer-text" class="text-white text-5xl font-bold mb-6 drop-shadow-lg"></p>
+                    <p id="funny-comment" class="text-yellow-300 text-2xl italic drop-shadow-md"></p>
+                </div>
+            </div>
+            <button id="reveal-btn" onclick="revealAnswer()" class="next-btn text-white text-xl px-8 py-4 rounded-full font-bold mb-4">
+                <i class="fas fa-lightbulb mr-3"></i>显示答案
+            </button>
+            <button id="next-btn" onclick="nextLevel()" class="next-btn text-white text-xl px-8 py-4 rounded-full font-bold hidden">
+                <i class="fas fa-arrow-right mr-3"></i>下一关
+            </button>
+        </div>
+        
+        <!-- 结束页 -->
+        <div id="end-page" class="hidden relative">
+            <div class="sparkle" style="top: 20%; left: 10%; animation-delay: 0s;"></div>
+            <div class="sparkle" style="top: 30%; right: 15%; animation-delay: 0.5s;"></div>
+            <div class="sparkle" style="bottom: 40%; left: 20%; animation-delay: 1s;"></div>
+            <div class="sparkle" style="bottom: 30%; right: 25%; animation-delay: 1.5s;"></div>
+            <div class="sparkle" style="top: 50%; left: 50%; animation-delay: 0.8s;"></div>
+            
+            <div class="py-32">
+                <p class="floating-text leading-relaxed">挑战，是成长的最好礼物</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 游戏数据
+        const gameData = {
+            levels: [
+                {
+                    title: "第一题",
+                    images: ["1.png", "2.png"],
+                    answer: "傻比（鲨臂）",
+                    comment: "这都猜不出来？鲨臂吧！"
+                },
+                {
+                    title: "第二题",
+                    images: ["3.png", "4.png"],
+                    answer: "我嘞个豆",
+                    comment: "豆豆这么可爱，你怎么能不吃！"
+                },
+                {
+                    title: "第三题",
+                    images: ["5.png", "6.png"],
+                    answer: "小丑竟是我自己",
+                    comment: "镜子里的你，今天笑了吗？"
+                },
+                {
+                    title: "第四题",
+                    images: ["7.png", "8.png"],
+                    answer: "老六",
+                    comment: "六六六，老铁没毛病！"
+                },
+                {
+                    title: "第五题",
+                    images: ["9.png", "10.png"],
+                    answer: "破防（破房）",
+                    comment: "房子破了可以修，心破了怎么办？"
+                },
+                {
+                    title: "第六题",
+                    images: ["11.png", "12.png"],
+                    answer: "肱二头肌",
+                    comment: "今天你练了吗？"
+                },
+                {
+                    title: "第七题",
+                    images: ["13.png", "14.png"],
+                    answer: "我躺平了",
+                    comment: "躺平也是一种生活态度~"
+                },
+                {
+                    title: "第八题",
+                    images: ["15.png", "16.png"],
+                    answer: "二次元（2刺圆）",
+                    comment: "二刺螈的世界你不懂！"
+                },
+                {
+                    title: "第九题",
+                    images: ["17.png", "18.png"],
+                    answer: "扯淡（扯蛋）",
+                    comment: "蛋蛋的忧伤~"
+                },
+                {
+                    title: "第十题",
+                    images: ["19.png", "20.png"],
+                    answer: "无语（无鱼）",
+                    comment: "鱼都被你气跑了！"
+                },
+                {
+                    title: "第十一题",
+                    images: ["21.png", "22.png"],
+                    answer: "无语死了",
+                    comment: "这次真的死透了..."
+                }
+            ],
+            currentLevel: 0
+        };
+
+        // 开始游戏
+        function startGame() {
+            document.getElementById('home-page').classList.add('hidden');
+            document.getElementById('game-page').classList.remove('hidden');
+            loadLevel(0);
+        }
+
+        // 加载关卡
+        function loadLevel(levelIndex) {
+            const level = gameData.levels[levelIndex];
+            document.getElementById('level-title').textContent = level.title;
+            document.getElementById('image1').src = level.images[0];
+            document.getElementById('image2').src = level.images[1];
+            document.getElementById('answer-text').textContent = level.answer;
+            document.getElementById('funny-comment').textContent = level.comment;
+            
+            // 重置按钮状态
+            document.getElementById('answer-section').classList.add('hidden');
+            document.getElementById('reveal-btn').classList.remove('hidden');
+            document.getElementById('next-btn').classList.add('hidden');
+        }
+
+        // 显示答案
+        function revealAnswer() {
+            document.getElementById('answer-section').classList.remove('hidden');
+            document.getElementById('reveal-btn').classList.add('hidden');
+            document.getElementById('next-btn').classList.remove('hidden');
+        }
+
+        // 下一关
+        function nextLevel() {
+            gameData.currentLevel++;
+            
+            if (gameData.currentLevel < gameData.levels.length) {
+                loadLevel(gameData.currentLevel);
+            } else {
+                // 游戏结束
+                document.getElementById('game-page').classList.add('hidden');
+                document.getElementById('end-page').classList.remove('hidden');
+            }
+        }
+
+        // 重新开始游戏
+        function restartGame() {
+            gameData.currentLevel = 0;
+            document.getElementById('end-page').classList.add('hidden');
+            document.getElementById('home-page').classList.remove('hidden');
+        }
+    </script>
+</body>
+</html>

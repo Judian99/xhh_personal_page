@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>看图猜字</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Framer Motion CDN -->
+    <script src="https://unpkg.com/framer-motion@10.16.4/dist/framer-motion.js"></script>
+    <!-- Font Awesome CDN -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;700&display=swap');
+        
+        body {
+            font-family: 'Noto Sans SC', sans-serif;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            min-height: 100vh;
+        }
+        
+        .game-container {
+            backdrop-filter: blur(10px);
+            background: rgba(255, 255, 255, 0.7);
+            border-radius: 20px;
+            box-shadow: 0 8px 32px rgba(31, 38, 135, 0.15);
+            border: 1px solid rgba(255, 255, 255, 0.18);
+        }
+        
+        .image-container {
+            transition: all 0.3s ease;
+        }
+        
+        .image-container:hover {
+            transform: scale(1.02);
+        }
+        
+        .answer-reveal {
+            animation: fadeIn 0.5s ease-in-out;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .title-text {
+            font-size: 4rem;
+            text-shadow: 3px 3px 0 rgba(0,0,0,0.1);
+            background: linear-gradient(to right, #ff8a00, #da1b60);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+        
+        .start-btn {
+            background: linear-gradient(45deg, #ff8a00, #da1b60);
+            box-shadow: 0 4px 15px rgba(218, 27, 96, 0.4);
+            transition: all 0.3s ease;
+        }
+        
+        .start-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 20px rgba(218, 27, 96, 0.6);
+        }
+        
+        .next-btn {
+            background: linear-gradient(45deg, #00b09b, #96c93d);
+            box-shadow: 0 4px 15px rgba(0, 176, 155, 0.4);
+            transition: all 0.3s ease;
+        }
+        
+        .next-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 20px rgba(0, 176, 155, 0.6);
+        }
+        
+        .logo {
+            height: 80px;
+            margin-bottom: 20px;
+        }
+        
+        .end-message {
+            animation: floatUp 2s ease-in-out forwards;
+            opacity: 0;
+            font-size: 3rem;
+            font-weight: bold;
+            color: #333;
+            margin: 20px 0;
+        }
+        
+        @keyframes floatUp {
+            0% { transform: translateY(50px); opacity: 0; }
+            100% { transform: translateY(0); opacity: 1; }
+        }
+    </style>
+</head>
+<body class="flex items-center justify-center p-4">
+    <div class="game-container w-full max-w-6xl p-8 text-center">
+        <!-- 首页 -->
+        <div id="home-page">
+            <img src="logo.png" alt="游戏LOGO" class="logo mx-auto">
+            <h1 class="title-text mb-8">看图猜字</h1>
+            <p class="text-2xl mb-12 text-gray-700">共有11个关卡，看看你能猜对几个！</p>
+            <button onclick="startGame()" class="start-btn text-white text-2xl px-8 py-4 rounded-full font-bold">
+                <i class="fas fa-play mr-2"></i>开始游戏
+            </button>
+        </div>
+        
+        <!-- 游戏关卡 -->
+        <div id="game-page" class="hidden">
+            <h2 id="level-title" class="text-4xl font-bold mb-8 text-gray-800"></h2>
+            <div class="flex flex-wrap justify-center gap-8 mb-12">
+                <div class="image-container w-full md:w-5/12 bg-white p-4 rounded-xl shadow-lg">
+                    <img id="image1" src="" alt="题目图片1" class="w-full h-auto rounded-lg">
+                </div>
+                <div class="image-container w-full md:w-5/12 bg-white p-4 rounded-xl shadow-lg relative">
+                    <img id="image2" src="" alt="题目图片2" class="w-full h-auto rounded-lg">
+                    <div id="answer-overlay" class="absolute inset-0 bg-black bg-opacity-70 flex items-center justify-center rounded-lg hidden answer-reveal">
+                        <div class="text-center p-4">
+                            <p id="answer-text" class="text-white text-5xl font-bold mb-4"></p>
+                            <p id="funny-comment" class="text-yellow-300 text-2xl italic"></p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <button id="reveal-btn" onclick="revealAnswer()" class="next-btn text-white text-xl px-6 py-3 rounded-full font-bold mb-4">
+                <i class="fas fa-lightbulb mr-2"></i>显示答案
+            </button>
+            <button id="next-btn" onclick="nextLevel()" class="next-btn text-white text-xl px-6 py-3 rounded-full font-bold hidden">
+                <i class="fas fa-arrow-right mr-2"></i>下一关
+            </button>
+        </div>
+        
+        <!-- 结束页 -->
+        <div id="end-page" class="hidden flex flex-col items-center justify-center">
+            <h1 class="title-text mb-8">游戏结束！</h1>
+            <div id="end-message" class="end-message">挑战，是成长的最好礼物</div>
+            <button onclick="restartGame()" class="start-btn text-white text-2xl px-8 py-4 rounded-full font-bold mt-8">
+                <i class="fas fa-redo mr-2"></i>再来一次
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // 游戏数据
+        const gameData = {
+            levels: [
+                {
+                    title: "第一题",
+                    images: ["1.png", "2.png"],
+                    answer: "傻比（鲨臂）",
+                    comment: "这都猜不出来？鲨臂吧！"
+                },
+                {
+                    title: "第二题",
+                    images: ["3.png", "4.png"],
+                    answer: "我嘞个豆",
+                    comment: "豆豆这么可爱，你怎么能不吃！"
+                },
+                {
+                    title: "第三题",
+                    images: ["5.png", "6.png"],
+                    answer: "小丑竟是我自己",
+                    comment: "镜子里的你，今天笑了吗？"
+                },
+                {
+                    title: "第四题",
+                    images: ["7.png", "8.png"],
+                    answer: "老六",
+                    comment: "六六六，老铁没毛病！"
+                },
+                {
+                    title: "第五题",
+                    images: ["9.png", "10.png"],
+                    answer: "破防（破房）",
+                    comment: "房子破了可以修，心破了怎么办？"
+                },
+                {
+                    title: "第六题",
+                    images: ["11.png", "12.png"],
+                    answer: "肱二头肌",
+                    comment: "今天你练了吗？"
+                },
+                {
+                    title: "第七题",
+                    images: ["13.png", "14.png"],
+                    answer: "我躺平了",
+                    comment: "躺平也是一种生活态度~"
+                },
+                {
+                    title: "第八题",
+                    images: ["15.png", "16.png"],
+                    answer: "二次元（2刺圆）",
+                    comment: "二刺螈的世界你不懂！"
+                },
+                {
+                    title: "第九题",
+                    images: ["17.png", "18.png"],
+                    answer: "扯淡（扯蛋）",
+                    comment: "蛋蛋的忧伤~"
+                },
+                {
+                    title: "第十题",
+                    images: ["19.png", "20.png"],
+                    answer: "无语（无鱼）",
+                    comment: "鱼都被你气跑了！"
+                },
+                {
+                    title: "第十一题",
+                    images: ["21.png", "22.png"],
+                    answer: "无语死了",
+                    comment: "这次真的死透了..."
+                }
+            ],
+            currentLevel: 0
+        };
+
+        // 开始游戏
+        function startGame() {
+            document.getElementById('home-page').classList.add('hidden');
+            document.getElementById('game-page').classList.remove('hidden');
+            loadLevel(0);
+        }
+
+        // 加载关卡
+        function loadLevel(levelIndex) {
+            const level = gameData.levels[levelIndex];
+            document.getElementById('level-title').textContent = level.title;
+            document.getElementById('image1').src = level.images[0];
+            document.getElementById('image2').src = level.images[1];
+            document.getElementById('answer-text').textContent = level.answer;
+            document.getElementById('funny-comment').textContent = level.comment;
+            
+            // 重置按钮状态
+            document.getElementById('answer-overlay').classList.add('hidden');
+            document.getElementById('reveal-btn').classList.remove('hidden');
+            document.getElementById('next-btn').classList.add('hidden');
+        }
+
+        // 显示答案
+        function revealAnswer() {
+            document.getElementById('answer-overlay').classList.remove('hidden');
+            document.getElementById('reveal-btn').classList.add('hidden');
+            document.getElementById('next-btn').classList.remove('hidden');
+        }
+
+        // 下一关
+        function nextLevel() {
+            gameData.currentLevel++;
+            
+            if (gameData.currentLevel < gameData.levels.length) {
+                loadLevel(gameData.currentLevel);
+            } else {
+                // 游戏结束
+                document.getElementById('game-page').classList.add('hidden');
+                document.getElementById('end-page').classList.remove('hidden');
+                // 触发结束文字动画
+                setTimeout(() => {
+                    document.getElementById('end-message').style.animation = 'floatUp 2s ease-in-out forwards';
+                }, 100);
+            }
+        }
+
+        // 重新开始游戏
+        function restartGame() {
+            gameData.currentLevel = 0;
+            document.getElementById('end-page').classList.add('hidden');
+            document.getElementById('home-page').classList.remove('hidden');
+            // 重置结束文字动画
+            document.getElementById('end-message').style.animation = 'none';
+            setTimeout(() => {
+                document.getElementById('end-message').style.animation = '';
+            }, 10);
+        }
+    </script>
+</body>
+</html>
