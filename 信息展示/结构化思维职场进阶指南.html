@@ -1,0 +1,632 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>结构化思维职场进阶指南</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/framer-motion@10.16.4/dist/framer-motion.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;700;900&family=Inter:wght@300;400;500;600&display=swap');
+        
+        body {
+            font-family: 'Noto Sans SC', 'Inter', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        
+        .glass-effect {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .gradient-text {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .card-hover {
+            transition: all 0.3s ease;
+        }
+        
+        .card-hover:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+        }
+        
+        .pyramid {
+            width: 0;
+            height: 0;
+            border-left: 60px solid transparent;
+            border-right: 60px solid transparent;
+            border-bottom: 80px solid #667eea;
+            margin: 0 auto;
+            position: relative;
+        }
+        
+        .method-icon {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 1rem;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            font-size: 2rem;
+        }
+        
+        .timeline-item {
+            position: relative;
+            padding-left: 2rem;
+        }
+        
+        .timeline-item::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0.5rem;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #667eea;
+        }
+        
+        .timeline-item::after {
+            content: '';
+            position: absolute;
+            left: 5px;
+            top: 1.5rem;
+            width: 2px;
+            height: calc(100% - 1rem);
+            background: linear-gradient(to bottom, #667eea, transparent);
+        }
+        
+        .interactive-card {
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .interactive-card:hover {
+            transform: scale(1.02);
+        }
+        
+        .principle-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+        }
+    </style>
+</head>
+<body class="overflow-x-hidden">
+    <!-- 导航栏 -->
+    <nav class="glass-effect fixed top-0 w-full z-50 px-6 py-4">
+        <div class="max-w-7xl mx-auto flex justify-between items-center">
+            <h1 class="text-2xl font-bold text-white">
+                <i class="fas fa-brain mr-2"></i>结构化思维
+            </h1>
+            <div class="hidden md:flex space-x-6">
+                <a href="#intro" class="text-white hover:text-blue-200 transition-colors">课程介绍</a>
+                <a href="#principles" class="text-white hover:text-blue-200 transition-colors">核心原理</a>
+                <a href="#methods" class="text-white hover:text-blue-200 transition-colors">三大技巧</a>
+                <a href="#training" class="text-white hover:text-blue-200 transition-colors">实践训练</a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- 主标题区域 -->
+    <section id="intro" class="min-h-screen flex items-center justify-center px-6 pt-20">
+        <div class="text-center max-w-4xl mx-auto">
+            <div class="animate-fade-in">
+                <h1 class="text-6xl md:text-8xl font-black text-white mb-6">
+                    结构化思维
+                </h1>
+                <h2 class="text-3xl md:text-4xl font-bold text-blue-200 mb-8">
+                    职场进阶指南
+                </h2>
+                <p class="text-xl text-white/80 mb-12 leading-relaxed">
+                    从碎片化信息到系统性思考<br>
+                    <span class="text-lg">From Fragmented Information to Systematic Thinking</span>
+                </p>
+                
+                <!-- 记忆游戏演示 -->
+                <div class="glass-effect rounded-2xl p-8 mb-8">
+                    <h3 class="text-2xl font-bold text-white mb-4">
+                        <i class="fas fa-gamepad mr-2"></i>记忆挑战
+                    </h3>
+                    <div id="memory-game" class="text-center">
+                        <div class="text-4xl font-mono text-white mb-4" id="number-display">
+                            149162536498100
+                        </div>
+                        <button onclick="revealPattern()" class="bg-white/20 hover:bg-white/30 text-white px-6 py-3 rounded-lg transition-all">
+                            揭示规律
+                        </button>
+                        <div id="pattern-reveal" class="hidden mt-4 text-white">
+                            <p class="text-lg mb-2">1² 4² 9² 16² 25² 36² 49² 64² 81² 100</p>
+                            <p class="text-sm opacity-80">Structure makes memory effortless</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 核心原理 -->
+    <section id="principles" class="py-20 px-6">
+        <div class="max-w-7xl mx-auto">
+            <div class="text-center mb-16">
+                <h2 class="text-5xl font-black text-white mb-6">核心原理</h2>
+                <p class="text-xl text-white/80">Core Principles</p>
+            </div>
+
+            <!-- 金字塔原理 -->
+            <div class="glass-effect rounded-3xl p-8 mb-12">
+                <div class="text-center mb-8">
+                    <h3 class="text-3xl font-bold text-white mb-4">
+                        <i class="fas fa-mountain mr-2"></i>金字塔原理
+                    </h3>
+                    <div class="pyramid mb-6"></div>
+                </div>
+                
+                <div class="grid md:grid-cols-3 gap-8">
+                    <div class="text-center">
+                        <div class="w-16 h-16 bg-yellow-400 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <i class="fas fa-crown text-2xl text-white"></i>
+                        </div>
+                        <h4 class="text-xl font-bold text-white mb-2">中心思想</h4>
+                        <p class="text-white/70">Main Theme</p>
+                    </div>
+                    <div class="text-center">
+                        <div class="w-16 h-16 bg-blue-400 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <i class="fas fa-layer-group text-2xl text-white"></i>
+                        </div>
+                        <h4 class="text-xl font-bold text-white mb-2">分论点</h4>
+                        <p class="text-white/70">Sub-arguments</p>
+                    </div>
+                    <div class="text-center">
+                        <div class="w-16 h-16 bg-green-400 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <i class="fas fa-puzzle-piece text-2xl text-white"></i>
+                        </div>
+                        <h4 class="text-xl font-bold text-white mb-2">支撑素材</h4>
+                        <p class="text-white/70">Supporting Evidence</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 四大原则 -->
+            <div class="principle-grid">
+                <div class="glass-effect rounded-2xl p-6 card-hover interactive-card" onclick="toggleCard(this)">
+                    <div class="text-center">
+                        <i class="fas fa-flag text-4xl text-yellow-400 mb-4"></i>
+                        <h4 class="text-xl font-bold text-white mb-2">结论先行</h4>
+                        <p class="text-white/70 text-sm">Conclusion First</p>
+                        <div class="hidden mt-4 text-white/80 text-sm">
+                            先说结论，再说理由。让听众第一时间抓住重点。
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="glass-effect rounded-2xl p-6 card-hover interactive-card" onclick="toggleCard(this)">
+                    <div class="text-center">
+                        <i class="fas fa-arrows-alt-v text-4xl text-blue-400 mb-4"></i>
+                        <h4 class="text-xl font-bold text-white mb-2">上下对应</h4>
+                        <p class="text-white/70 text-sm">Vertical Alignment</p>
+                        <div class="hidden mt-4 text-white/80 text-sm">
+                            上层论点与下层论据要有逻辑对应关系。
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="glass-effect rounded-2xl p-6 card-hover interactive-card" onclick="toggleCard(this)">
+                    <div class="text-center">
+                        <i class="fas fa-sitemap text-4xl text-green-400 mb-4"></i>
+                        <h4 class="text-xl font-bold text-white mb-2">分类清楚</h4>
+                        <p class="text-white/70 text-sm">Clear Classification</p>
+                        <div class="hidden mt-4 text-white/80 text-sm">
+                            同级要素相互独立，完全穷尽，不重不漏。
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="glass-effect rounded-2xl p-6 card-hover interactive-card" onclick="toggleCard(this)">
+                    <div class="text-center">
+                        <i class="fas fa-sort-numeric-down text-4xl text-purple-400 mb-4"></i>
+                        <h4 class="text-xl font-bold text-white mb-2">同级排序</h4>
+                        <p class="text-white/70 text-sm">Logical Ordering</p>
+                        <div class="hidden mt-4 text-white/80 text-sm">
+                            同级论点按重要性或逻辑顺序排列。
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 三大技巧 -->
+    <section id="methods" class="py-20 px-6">
+        <div class="max-w-7xl mx-auto">
+            <div class="text-center mb-16">
+                <h2 class="text-5xl font-black text-white mb-6">三大技巧</h2>
+                <p class="text-xl text-white/80">Three Core Methods</p>
+            </div>
+
+            <div class="grid lg:grid-cols-3 gap-8">
+                <!-- 时钟法 -->
+                <div class="glass-effect rounded-3xl p-8 card-hover">
+                    <div class="method-icon">
+                        <i class="fas fa-clock"></i>
+                    </div>
+                    <h3 class="text-2xl font-bold text-white text-center mb-4">时钟法</h3>
+                    <p class="text-center text-white/70 mb-6">Time-based Method</p>
+                    
+                    <div class="space-y-4">
+                        <div class="timeline-item">
+                            <h4 class="font-semibold text-white">时间顺序</h4>
+                            <p class="text-white/70 text-sm">按时间发展脉络组织信息</p>
+                        </div>
+                        <div class="timeline-item">
+                            <h4 class="font-semibold text-white">流程步骤</h4>
+                            <p class="text-white/70 text-sm">按操作流程梳理要点</p>
+                        </div>
+                        <div class="timeline-item">
+                            <h4 class="font-semibold text-white">阶段划分</h4>
+                            <p class="text-white/70 text-sm">按发展阶段分类思考</p>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-6 p-4 bg-white/10 rounded-lg">
+                        <h5 class="font-semibold text-white mb-2">应用场景</h5>
+                        <ul class="text-white/70 text-sm space-y-1">
+                            <li>• 工作汇报与总结</li>
+                            <li>• 项目规划与执行</li>
+                            <li>• 产品发布流程</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- 环球法 -->
+                <div class="glass-effect rounded-3xl p-8 card-hover">
+                    <div class="method-icon">
+                        <i class="fas fa-globe"></i>
+                    </div>
+                    <h3 class="text-2xl font-bold text-white text-center mb-4">环球法</h3>
+                    <p class="text-center text-white/70 mb-6">Space-based Method</p>
+                    
+                    <div class="space-y-4">
+                        <div class="timeline-item">
+                            <h4 class="font-semibold text-white">空间维度</h4>
+                            <p class="text-white/70 text-sm">按地理位置或空间分布</p>
+                        </div>
+                        <div class="timeline-item">
+                            <h4 class="font-semibold text-white">部门结构</h4>
+                            <p class="text-white/70 text-sm">按组织架构分析问题</p>
+                        </div>
+                        <div class="timeline-item">
+                            <h4 class="font-semibold text-white">功能模块</h4>
+                            <p class="text-white/70 text-sm">按功能区域划分要素</p>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-6 p-4 bg-white/10 rounded-lg">
+                        <h5 class="font-semibold text-white mb-2">应用场景</h5>
+                        <ul class="text-white/70 text-sm space-y-1">
+                            <li>• 市场分析报告</li>
+                            <li>• 组织架构设计</li>
+                            <li>• 产品功能介绍</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- 三角法 -->
+                <div class="glass-effect rounded-3xl p-8 card-hover">
+                    <div class="method-icon">
+                        <i class="fas fa-triangle"></i>
+                    </div>
+                    <h3 class="text-2xl font-bold text-white text-center mb-4">三角法</h3>
+                    <p class="text-center text-white/70 mb-6">Multi-perspective Method</p>
+                    
+                    <div class="space-y-4">
+                        <div class="timeline-item">
+                            <h4 class="font-semibold text-white">多角度分析</h4>
+                            <p class="text-white/70 text-sm">从不同视角审视问题</p>
+                        </div>
+                        <div class="timeline-item">
+                            <h4 class="font-semibold text-white">利益相关方</h4>
+                            <p class="text-white/70 text-sm">考虑各方利益与诉求</p>
+                        </div>
+                        <div class="timeline-item">
+                            <h4 class="font-semibold text-white">成因影响对策</h4>
+                            <p class="text-white/70 text-sm">分析原因、影响、解决方案</p>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-6 p-4 bg-white/10 rounded-lg">
+                        <h5 class="font-semibold text-white mb-2">应用场景</h5>
+                        <ul class="text-white/70 text-sm space-y-1">
+                            <li>• 风险评估分析</li>
+                            <li>• 决策方案对比</li>
+                            <li>• 冲突协调处理</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- SCQA表达框架 -->
+    <section class="py-20 px-6">
+        <div class="max-w-7xl mx-auto">
+            <div class="text-center mb-16">
+                <h2 class="text-5xl font-black text-white mb-6">SCQA表达框架</h2>
+                <p class="text-xl text-white/80">Structured Communication Framework</p>
+            </div>
+
+            <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+                <div class="glass-effect rounded-2xl p-6 text-center card-hover">
+                    <div class="w-16 h-16 bg-blue-500 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <span class="text-2xl font-bold text-white">S</span>
+                    </div>
+                    <h4 class="text-xl font-bold text-white mb-2">场景</h4>
+                    <p class="text-white/70 text-sm mb-3">Situation</p>
+                    <p class="text-white/60 text-xs">描述背景情况，建立共同认知基础</p>
+                </div>
+
+                <div class="glass-effect rounded-2xl p-6 text-center card-hover">
+                    <div class="w-16 h-16 bg-red-500 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <span class="text-2xl font-bold text-white">C</span>
+                    </div>
+                    <h4 class="text-xl font-bold text-white mb-2">冲突</h4>
+                    <p class="text-white/70 text-sm mb-3">Conflict</p>
+                    <p class="text-white/60 text-xs">指出问题矛盾，引起听众关注</p>
+                </div>
+
+                <div class="glass-effect rounded-2xl p-6 text-center card-hover">
+                    <div class="w-16 h-16 bg-yellow-500 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <span class="text-2xl font-bold text-white">Q</span>
+                    </div>
+                    <h4 class="text-xl font-bold text-white mb-2">疑问</h4>
+                    <p class="text-white/70 text-sm mb-3">Question</p>
+                    <p class="text-white/60 text-xs">提出关键问题，明确解决方向</p>
+                </div>
+
+                <div class="glass-effect rounded-2xl p-6 text-center card-hover">
+                    <div class="w-16 h-16 bg-green-500 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <span class="text-2xl font-bold text-white">A</span>
+                    </div>
+                    <h4 class="text-xl font-bold text-white mb-2">答案</h4>
+                    <p class="text-white/70 text-sm mb-3">Answer</p>
+                    <p class="text-white/60 text-xs">给出解决方案，形成行动指引</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 实践训练 -->
+    <section id="training" class="py-20 px-6">
+        <div class="max-w-7xl mx-auto">
+            <div class="text-center mb-16">
+                <h2 class="text-5xl font-black text-white mb-6">实践训练</h2>
+                <p class="text-xl text-white/80">Practical Training</p>
+            </div>
+
+            <div class="grid lg:grid-cols-3 gap-8">
+                <!-- 搭建地基 -->
+                <div class="glass-effect rounded-3xl p-8">
+                    <div class="text-center mb-6">
+                        <i class="fas fa-foundation text-4xl text-blue-400 mb-4"></i>
+                        <h3 class="text-2xl font-bold text-white">搭建地基</h3>
+                        <p class="text-white/70">Building Foundation</p>
+                    </div>
+                    <ul class="space-y-3 text-white/80">
+                        <li class="flex items-start">
+                            <i class="fas fa-check-circle text-green-400 mt-1 mr-3"></i>
+                            <span>掌握时钟法、环球法、三角法</span>
+                        </li>
+                        <li class="flex items-start">
+                            <i class="fas fa-check-circle text-green-400 mt-1 mr-3"></i>
+                            <span>熟练运用MECE原则</span>
+                        </li>
+                        <li class="flex items-start">
+                            <i class="fas fa-check-circle text-green-400 mt-1 mr-3"></i>
+                            <span>形成结构化思维肌肉记忆</span>
+                        </li>
+                    </ul>
+                </div>
+
+                <!-- 学会总结 -->
+                <div class="glass-effect rounded-3xl p-8">
+                    <div class="text-center mb-6">
+                        <i class="fas fa-chart-line text-4xl text-yellow-400 mb-4"></i>
+                        <h3 class="text-2xl font-bold text-white">学会总结</h3>
+                        <p class="text-white/70">Learn to Summarize</p>
+                    </div>
+                    <ul class="space-y-3 text-white/80">
+                        <li class="flex items-start">
+                            <i class="fas fa-check-circle text-green-400 mt-1 mr-3"></i>
+                            <span>定期进行工作复盘</span>
+                        </li>
+                        <li class="flex items-start">
+                            <i class="fas fa-check-circle text-green-400 mt-1 mr-3"></i>
+                            <span>分析成长轨迹与差距</span>
+                        </li>
+                        <li class="flex items-start">
+                            <i class="fas fa-check-circle text-green-400 mt-1 mr-3"></i>
+                            <span>制定下阶段发力重点</span>
+                        </li>
+                    </ul>
+                </div>
+
+                <!-- 刻意练习 -->
+                <div class="glass-effect rounded-3xl p-8">
+                    <div class="text-center mb-6">
+                        <i class="fas fa-dumbbell text-4xl text-purple-400 mb-4"></i>
+                        <h3 class="text-2xl font-bold text-white">刻意练习</h3>
+                        <p class="text-white/70">Deliberate Practice</p>
+                    </div>
+                    <ul class="space-y-3 text-white/80">
+                        <li class="flex items-start">
+                            <i class="fas fa-check-circle text-green-400 mt-1 mr-3"></i>
+                            <span>日常沟通中应用结构化</span>
+                        </li>
+                        <li class="flex items-start">
+                            <i class="fas fa-check-circle text-green-400 mt-1 mr-3"></i>
+                            <span>团队间互相督促训练</span>
+                        </li>
+                        <li class="flex items-start">
+                            <i class="fas fa-check-circle text-green-400 mt-1 mr-3"></i>
+                            <span>持续优化表达效果</span>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- 沟通技巧 -->
+            <div class="mt-16 glass-effect rounded-3xl p-8">
+                <h3 class="text-3xl font-bold text-white text-center mb-8">
+                    <i class="fas fa-comments mr-2"></i>结构化沟通技巧
+                </h3>
+                <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+                    <div class="text-center">
+                        <div class="w-12 h-12 bg-blue-500 rounded-full flex items-center justify-center mx-auto mb-3">
+                            <i class="fas fa-ear-listen text-white"></i>
+                        </div>
+                        <h4 class="font-semibold text-white mb-2">确认理解</h4>
+                        <p class="text-white/70 text-sm">复述对方观点，确保同频沟通</p>
+                    </div>
+                    <div class="text-center">
+                        <div class="w-12 h-12 bg-green-500 rounded-full flex items-center justify-center mx-auto mb-3">
+                            <i class="fas fa-search text-white"></i>
+                        </div>
+                        <h4 class="font-semibold text-white mb-2">细化需求</h4>
+                        <p class="text-white/70 text-sm">深入挖掘，明确具体要求</p>
+                    </div>
+                    <div class="text-center">
+                        <div class="w-12 h-12 bg-yellow-500 rounded-full flex items-center justify-center mx-auto mb-3">
+                            <i class="fas fa-lightbulb text-white"></i>
+                        </div>
+                        <h4 class="font-semibold text-white mb-2">具象引导</h4>
+                        <p class="text-white/70 text-sm">用具体案例帮助理解</p>
+                    </div>
+                    <div class="text-center">
+                        <div class="w-12 h-12 bg-purple-500 rounded-full flex items-center justify-center mx-auto mb-3">
+                            <i class="fas fa-heart text-white"></i>
+                        </div>
+                        <h4 class="font-semibold text-white mb-2">情感共鸣</h4>
+                        <p class="text-white/70 text-sm">理解对方立场，建立信任</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 课程总结 -->
+    <section class="py-20 px-6">
+        <div class="max-w-4xl mx-auto text-center">
+            <div class="glass-effect rounded-3xl p-12">
+                <h2 class="text-4xl font-black text-white mb-6">课程核心要点</h2>
+                <div class="space-y-6 text-lg text-white/90">
+                    <p class="leading-relaxed">
+                        <strong class="text-yellow-400">结构化思维</strong>是以事实为依据，通过逻辑推理形成有效解决方案的思维方式
+                    </p>
+                    <p class="leading-relaxed">
+                        掌握<strong class="text-blue-400">金字塔原理</strong>和<strong class="text-green-400">四大原则</strong>，运用三大技巧解决实际问题
+                    </p>
+                    <p class="leading-relaxed">
+                        通过<strong class="text-purple-400">刻意练习</strong>和<strong class="text-red-400">持续训练</strong>，让结构化思维成为职场核心竞争力
+                    </p>
+                </div>
+                
+                <div class="mt-8 p-6 bg-gradient-to-r from-blue-500/20 to-purple-500/20 rounded-xl">
+                    <p class="text-white/80 italic">
+                        "结构化思维不是限制创造力，而是为创新提供坚实的逻辑基础"
+                    </p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 页脚 -->
+    <footer class="py-12 px-6 text-center">
+        <div class="max-w-4xl mx-auto">
+            <p class="text-white/60">
+                © 2024 结构化思维职场进阶指南 | Structured Thinking Career Advancement Guide
+            </p>
+        </div>
+    </footer>
+
+    <script>
+        // 记忆游戏功能
+        function revealPattern() {
+            document.getElementById('pattern-reveal').classList.remove('hidden');
+        }
+
+        // 卡片交互功能
+        function toggleCard(card) {
+            const hiddenContent = card.querySelector('.hidden');
+            if (hiddenContent) {
+                hiddenContent.classList.toggle('hidden');
+                card.classList.toggle('bg-white/20');
+            }
+        }
+
+        // 滚动动画
+        const observerOptions = {
+            threshold: 0.1,
+            rootMargin: '0px 0px -50px 0px'
+        };
+
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.style.opacity = '1';
+                    entry.target.style.transform = 'translateY(0)';
+                }
+            });
+        }, observerOptions);
+
+        // 初始化动画元素
+        document.addEventListener('DOMContentLoaded', () => {
+            const animateElements = document.querySelectorAll('.card-hover, .glass-effect');
+            animateElements.forEach(el => {
+                el.style.opacity = '0';
+                el.style.transform = 'translateY(30px)';
+                el.style.transition = 'all 0.6s ease';
+                observer.observe(el);
+            });
+
+            // 平滑滚动
+            document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+                anchor.addEventListener('click', function (e) {
+                    e.preventDefault();
+                    const target = document.querySelector(this.getAttribute('href'));
+                    if (target) {
+                        target.scrollIntoView({
+                            behavior: 'smooth',
+                            block: 'start'
+                        });
+                    }
+                });
+            });
+        });
+
+        // 鼠标跟随效果
+        document.addEventListener('mousemove', (e) => {
+            const cursor = document.querySelector('.cursor');
+            if (!cursor) {
+                const newCursor = document.createElement('div');
+                newCursor.className = 'cursor fixed w-4 h-4 bg-white/30 rounded-full pointer-events-none z-50 transition-all duration-300';
+                document.body.appendChild(newCursor);
+            }
+            
+            const cursorElement = document.querySelector('.cursor');
+            cursorElement.style.left = e.clientX - 8 + 'px';
+            cursorElement.style.top = e.clientY - 8 + 'px';
+        });
+    </script>
+</body>
+</html>
