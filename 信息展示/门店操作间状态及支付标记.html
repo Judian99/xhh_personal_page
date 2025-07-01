@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>门店操作间状态与支付标记</title>
+    <!-- Import Google Fonts for a clean, modern look -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&family=Noto+Sans+SC:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        /* --- CSS Variables for a consistent and easily customizable theme --- */
+        :root {
+            --color-bg: #f8f9fa;
+            --color-card-bg: #ffffff;
+            --color-border: #dee2e6;
+            --color-header-bg: #f1f3f5;
+            --color-text-primary: #212529;
+            --color-text-secondary: #495057;
+            --color-text-on-accent: #ffffff;
+
+            --color-free-start: #3b82f6;
+            --color-free-end: #60a5fa;
+            --color-busy-start: #ef4444;
+            --color-busy-end: #f87171;
+            --color-payment-start: #f97316;
+            --color-payment-end: #fb923c;
+            --color-ai-button-start: #8b5cf6;
+            --color-ai-button-end: #a78bfa;
+            
+            --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+            --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+            --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+            --border-radius: 0.75rem; /* 12px */
+        }
+
+        /* --- Base and Layout Styles --- */
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: 'Inter', 'Noto Sans SC', sans-serif;
+            background-color: var(--color-bg);
+            color: var(--color-text-primary);
+            padding: 2rem;
+        }
+        
+        @media (max-width: 768px) { body { padding: 1rem; } }
+
+        .header-container {
+            text-align: center;
+            margin-bottom: 1.5rem;
+        }
+
+        h1 {
+            margin-bottom: 1rem;
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--color-text-primary);
+        }
+
+        /* --- AI Summary Button --- */
+        .ai-summary-btn {
+            background-image: linear-gradient(to right, var(--color-ai-button-start) 0%, var(--color-ai-button-end) 51%, var(--color-ai-button-start) 100%);
+            background-size: 200% auto;
+            border: none;
+            border-radius: 0.5rem;
+            color: white;
+            padding: 0.75rem 1.5rem;
+            font-size: 1rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background-position 0.3s ease-in-out, box-shadow 0.2s ease;
+            box-shadow: var(--shadow-sm);
+        }
+        .ai-summary-btn:hover {
+            background-position: right center;
+            box-shadow: var(--shadow-md);
+        }
+
+        /* --- Main Card Container for the schedule --- */
+        .schedule-card {
+            overflow: hidden;
+            box-shadow: var(--shadow-md);
+            border-radius: var(--border-radius);
+            background-color: var(--color-card-bg);
+            padding: 1.5rem;
+        }
+
+        /* --- Table and Cell Styling --- */
+        .table-wrapper {
+            overflow-x: auto;
+            border: 1px solid var(--color-border);
+            border-radius: 0.5rem;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            min-width: 800px;
+        }
+
+        th, td {
+            padding: 0.75rem 1rem;
+            text-align: center;
+            border-bottom: 1px solid var(--color-border);
+            white-space: nowrap;
+            transition: background-color 0.2s ease-in-out;
+        }
+        
+        tbody tr:last-child td { border-bottom: none; }
+
+        thead th {
+            background-color: var(--color-header-bg);
+            font-weight: 500;
+            font-size: 0.875rem;
+            color: var(--color-text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            position: sticky; top: 0; z-index: 2;
+        }
+
+        th:first-child, td:first-child {
+            font-weight: 500;
+            position: sticky; left: 0; z-index: 1;
+            border-right: 1px solid var(--color-border);
+        }
+        
+        thead th:first-child { background-color: var(--color-header-bg); }
+        tbody tr:nth-child(odd) td:first-child { background-color: #fdfdfe; }
+        tbody tr:nth-child(even) td:first-child { background-color: var(--color-bg); }
+        tbody tr:nth-child(even) { background-color: var(--color-bg); }
+
+        /* --- Cell State Styles --- */
+        .cell-status {
+            color: var(--color-text-on-accent);
+            font-weight: 500;
+            border-radius: 6px;
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+            transition: transform 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94), box-shadow 0.2s ease;
+        }
+        
+        .cell-status:hover {
+            transform: scale(1.05);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+            z-index: 5;
+        }
+
+        td.free { background: linear-gradient(135deg, var(--color-free-end), var(--color-free-start)); }
+        td.busy { background: linear-gradient(135deg, var(--color-busy-end), var(--color-busy-start)); }
+        td.payment {
+            background: linear-gradient(135deg, var(--color-payment-end), var(--color-payment-start));
+            box-shadow: 0 0 0 3px var(--color-payment-start), 0 0 12px var(--color-payment-start);
+        }
+
+        td[title] { cursor: help; }
+        td[title]:hover::after {
+            content: attr(title);
+            position: absolute; bottom: 110%; left: 50%;
+            transform: translateX(-50%);
+            white-space: nowrap;
+            background: rgba(0, 0, 0, 0.8);
+            color: #fff;
+            padding: 0.5rem 0.75rem;
+            font-size: 0.875rem; font-weight: 400; border-radius: 6px;
+            pointer-events: none; z-index: 10; opacity: 0;
+            animation: fadeInTooltip 0.2s ease forwards;
+        }
+        @keyframes fadeInTooltip { to { opacity: 1; } }
+
+        /* --- Legend Styling --- */
+        .legend {
+            margin-top: 2rem; display: flex; justify-content: center;
+            align-items: center; flex-wrap: wrap; gap: 1rem 2rem;
+        }
+        .legend-item { display: flex; align-items: center; gap: 0.5rem; font-size: 0.9rem; color: var(--color-text-secondary); }
+        .legend-color { width: 16px; height: 16px; border-radius: 4px; box-shadow: var(--shadow-sm); }
+        .legend-free { background: linear-gradient(135deg, var(--color-free-end), var(--color-free-start)); }
+        .legend-busy { background: linear-gradient(135deg, var(--color-busy-end), var(--color-busy-start)); }
+        .legend-payment { background: linear-gradient(135deg, var(--color-payment-end), var(--color-payment-start)); }
+        
+        /* --- Modal for AI Summary & Image Snapshot --- */
+        .modal-overlay {
+            position: fixed; top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: rgba(0,0,0,0.6);
+            display: flex; align-items: center; justify-content: center;
+            z-index: 100;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s, visibility 0.3s;
+        }
+        .modal-overlay.visible { opacity: 1; visibility: visible; }
+        
+        .modal-content {
+            background: var(--color-card-bg);
+            padding: 2rem;
+            border-radius: var(--border-radius);
+            width: 90%;
+            max-width: 600px;
+            box-shadow: var(--shadow-lg);
+            transform: scale(0.95);
+            transition: transform 0.3s;
+        }
+        .modal-overlay.visible .modal-content { transform: scale(1); }
+        
+        .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; }
+        .modal-title { font-size: 1.5rem; font-weight: 600; color: var(--color-text-primary); }
+        .modal-close {
+            background: none; border: none; font-size: 2rem;
+            cursor: pointer; color: var(--color-text-secondary);
+            line-height: 1;
+        }
+        
+        .modal-body { max-height: 70vh; overflow-y: auto; line-height: 1.6; }
+        .modal-body p { margin-bottom: 1rem; }
+        .modal-body strong { color: var(--color-text-primary); }
+
+        /* --- Loading Spinner --- */
+        .loader {
+            width: 48px; height: 48px;
+            border: 5px solid var(--color-header-bg);
+            border-bottom-color: var(--color-ai-button-start);
+            border-radius: 50%;
+            display: block;
+            margin: 2rem auto;
+            animation: rotation 1s linear infinite;
+        }
+        @keyframes rotation { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header-container">
+            <h1>门店操作间状态及支付标记 (10:00 - 19:00)</h1>
+            <button class="ai-summary-btn" id="aiSummaryBtn">✨ 生成当日总结</button>
+        </div>
+
+        <div class="schedule-card">
+             <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>时间段</th>
+                            <th>操作间 1</th><th>操作间 2</th><th>操作间 3</th><th>操作间 4</th>
+                            <th>操作间 5</th><th>操作间 6</th><th>操作间 7</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- JavaScript will automatically generate the table body here -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="legend">
+            <div class="legend-item"><span class="legend-color legend-free"></span> 空闲</div>
+            <div class="legend-item"><span class="legend-color legend-busy"></span> 在忙</div>
+            <div class="legend-item"><span class="legend-color legend-payment"></span> 支付标记</div>
+        </div>
+    </div>
+
+    <!-- AI Summary Modal -->
+    <div class="modal-overlay" id="aiModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title">✨ AI 生成的当日总结</h2>
+                <button class="modal-close" id="closeModalBtn">&times;</button>
+            </div>
+            <div class="modal-body" id="modalBody">
+                <!-- AI content will be loaded here -->
+            </div>
+        </div>
+    </div>
+    
+    <!-- Image Snapshot Modal -->
+    <div class="modal-overlay" id="imageModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title" id="imageModalTitle">抓拍图</h2>
+                <button class="modal-close" id="closeImageModalBtn">&times;</button>
+            </div>
+            <div class="modal-body" id="imageModalBody">
+                <img src="" alt="时段抓拍图" id="snapshotImage" style="width: 100%; height: auto; border-radius: 0.5rem; display: block;">
+            </div>
+        </div>
+    </div>
+
+
+    <script>
+        // --- Data and Table Generation Logic ---
+        const start = 10 * 60, end = 19 * 60, interval = 30, roomCount = 7;
+        
+        const busySlots = { 
+            '10:00-10:30': [2], '10:30-11:00': [2], '11:00-11:30': [2],
+            '12:30-13:00': [5], '13:00-13:30': [5],
+            '14:00-14:30': [4], '14:30-15:00': [4], '15:00-15:30': [4], '15:30-16:00': [4],
+            '16:30-17:00': [1, 6], '17:00-17:30': [1, 6]
+        };
+        
+        const paymentEvents = [ 
+            { name: '王女士', time: '11:25:10', room: 2 },
+            { name: '李先生', time: '15:58:45', room: 4 },
+            { name: '赵先生', time: '17:15:30', room: null }
+        ];
+        
+        const tbody = document.querySelector('tbody');
+
+        function renderTable() {
+            tbody.innerHTML = '';
+            for (let t = start; t < end; t += interval) {
+                const tr = document.createElement('tr');
+                const slotStart = `${String(Math.floor(t / 60)).padStart(2, '0')}:${String(t % 60).padStart(2, '0')}`;
+                const slotEnd = `${String(Math.floor((t + interval) / 60)).padStart(2, '0')}:${String((t + interval) % 60).padStart(2, '0')}`;
+                const slot = `${slotStart}-${slotEnd}`;
+                
+                const tdTime = document.createElement('td');
+                tdTime.textContent = slot;
+                tr.appendChild(tdTime);
+
+                for (let r = 1; r <= roomCount; r++) {
+                    const td = document.createElement('td');
+                    const isBusy = busySlots[slot] && busySlots[slot].includes(r);
+                    td.className = isBusy ? 'busy cell-status' : 'free cell-status';
+                    td.textContent = isBusy ? '忙' : '空';
+                    tr.appendChild(td);
+                }
+
+                paymentEvents.filter(evt => {
+                    const [h, m, s] = evt.time.split(':').map(Number);
+                    const timeInMin = h * 60 + m + s / 60;
+                    return timeInMin >= t && timeInMin < t + interval;
+                }).forEach(evt => {
+                    if (evt.room === null) {
+                        Array.from(tr.children).slice(1).forEach(td => {
+                            td.classList.add('payment');
+                            td.title = `判定失败: ${evt.name} ${evt.time}`;
+                        });
+                    } else {
+                        const td = tr.children[evt.room];
+                        if (td) {
+                            td.classList.add('payment');
+                            td.title = `支付: ${evt.name} ${evt.time}`;
+                        }
+                    }
+                });
+                tbody.appendChild(tr);
+            }
+        }
+        
+        renderTable();
+
+        // --- Gemini API Integration for AI Summary ---
+        const aiSummaryBtn = document.getElementById('aiSummaryBtn');
+        const aiModal = document.getElementById('aiModal');
+        const closeModalBtn = document.getElementById('closeModalBtn');
+        const modalBody = document.getElementById('modalBody');
+
+        aiSummaryBtn.addEventListener('click', generateAISummary);
+        closeModalBtn.addEventListener('click', () => aiModal.classList.remove('visible'));
+        aiModal.addEventListener('click', (e) => {
+            if (e.target === aiModal) { aiModal.classList.remove('visible'); }
+        });
+
+        async function generateAISummary() {
+            aiModal.classList.add('visible');
+            modalBody.innerHTML = '<div class="loader"></div>';
+
+            const prompt = `
+                You are a helpful and insightful store operations analyst for a salon.
+                Based on the following schedule data, please provide a concise end-of-day summary in Chinese.
+                The store has ${roomCount} operation rooms and is open from 10:00 to 19:00.
+                Here is the data:
+                - Busy Slots Data (Format: "HH:MM-HH:MM": [room numbers]): ${JSON.stringify(busySlots)}
+                - Specific Payment Events: ${JSON.stringify(paymentEvents)}
+                Your summary should be structured and easy to read. Please include:
+                1.  **整体情况 (Overall Situation):** Give a brief overview of the day's booking rate (e.g., busy, moderate, light).
+                2.  **高峰时段 (Peak Hours):** Identify the busiest time slots of the day.
+                3.  **运营亮点与建议 (Operational Highlights & Suggestions):**
+                    - Point out which rooms were most and least utilized.
+                    - Specifically mention the payment event where the room assignment failed ('判定失败') and suggest a clear action, like asking the staff to double-check records.
+                    - Offer one positive concluding remark or a practical suggestion for the next day.
+            `;
+
+            try {
+                const apiKey = "";
+                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+                const payload = { contents: [{ role: "user", parts: [{ text: prompt }] }] };
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                
+                if (!response.ok) { throw new Error(`API call failed with status: ${response.status}`); }
+                const result = await response.json();
+                
+                if (result.candidates && result.candidates.length > 0) {
+                    const text = result.candidates[0].content.parts[0].text;
+                    const formattedText = text.replace(/\n\n/g, '</p><p>').replace(/\n/g, '<br>');
+                    modalBody.innerHTML = `<p>${formattedText}</p>`;
+                } else { throw new Error("No content received from API."); }
+            } catch (error) {
+                console.error("Error fetching AI summary:", error);
+                modalBody.innerHTML = `<p style="color:red;">抱歉，生成总结时遇到错误。请稍后再试。<br><br><strong>错误详情:</strong> ${error.message}</p>`;
+            }
+        }
+
+        // --- Image Snapshot Modal Logic ---
+        const imageModal = document.getElementById('imageModal');
+        const closeImageModalBtn = document.getElementById('closeImageModalBtn');
+        const imageModalTitle = document.getElementById('imageModalTitle');
+        const snapshotImage = document.getElementById('snapshotImage');
+
+        closeImageModalBtn.addEventListener('click', () => imageModal.classList.remove('visible'));
+        imageModal.addEventListener('click', (e) => {
+            if (e.target === imageModal) { imageModal.classList.remove('visible'); }
+        });
+
+        tbody.addEventListener('click', (e) => {
+            if (e.target.tagName === 'TD' && e.target.cellIndex > 0) {
+                const cell = e.target;
+                const roomIndex = cell.cellIndex;
+                const roomName = document.querySelector(`thead th:nth-child(${roomIndex + 1})`).textContent.trim();
+                const timeSlot = cell.parentElement.cells[0].textContent.trim();
+                
+                imageModalTitle.textContent = `${roomName} 于 ${timeSlot} 时段抓拍图`;
+                
+                // --- MODIFIED LINE ---
+                // This now points to a local file.
+                snapshotImage.src = '示例图片.jpg'; 
+                // --- END OF MODIFICATION ---
+                
+                snapshotImage.alt = `${roomName} 于 ${timeSlot} 抓拍图`;
+                snapshotImage.onerror = () => { 
+                    // This fallback will be shown if '示例图片.jpg' cannot be found.
+                    snapshotImage.src = "https://placehold.co/600x400/ff0000/ffffff?text=Image+Not+Found"; 
+                };
+
+                imageModal.classList.add('visible');
+            }
+        });
+    </script>
+</body>
+</html>
