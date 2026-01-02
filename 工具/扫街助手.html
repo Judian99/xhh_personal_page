@@ -13,7 +13,6 @@
             font-family: "PingFang SC", "Microsoft YaHei", sans-serif;
         }
         
-        /* 控制面板样式 */
         .control-panel {
             position: absolute;
             top: 1rem;
@@ -46,7 +45,6 @@
             font-weight: bold;
         }
 
-        /* 复选框网格 */
         .district-grid {
             display: grid;
             grid-template-columns: 1fr 1fr 1fr;
@@ -65,7 +63,6 @@
             margin-right: 4px;
         }
 
-        /* 下拉框和按钮 */
         select, button {
             width: 100%;
             padding: 10px;
@@ -91,16 +88,16 @@
         button:disabled {
             background-color: #93c5fd;
             cursor: not-allowed;
+            opacity: 0.7;
         }
 
-        /* 结果展示区 */
         .result-box {
             margin-top: 10px;
             padding: 10px;
             background: #f0f9ff;
             border-radius: 4px;
             border-left: 4px solid #2563eb;
-            display: none; /* 默认隐藏 */
+            display: none;
         }
 
         .result-title {
@@ -118,9 +115,20 @@
             color: #666;
             font-size: 12px;
             text-align: center;
+            padding: 10px;
         }
+
+        /* 状态指示器 */
+        .status-badge {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            margin-right: 5px;
+        }
+        .status-loading { background-color: #fbbf24; }
+        .status-ready { background-color: #10b981; }
         
-        /* 移动端适配 */
         @media (max-width: 480px) {
             .control-panel {
                 width: calc(100% - 2rem);
@@ -138,11 +146,15 @@
 <div class="control-panel">
     <div class="panel-header">
         <span>📸 扫街随机选点</span>
+        <span style="font-size:12px; font-weight:normal; color:#666;">
+            <span id="data-status-dot" class="status-badge status-loading"></span>
+            <span id="data-status-text">数据加载中...</span>
+        </span>
     </div>
 
     <div class="section-title">1. 选择区域 (福州)</div>
     <div id="district-list" class="district-grid">
-        <div class="loading-text">正在加载行政区数据...</div>
+        <div class="loading-text">正在获取行政区划...</div>
     </div>
 
     <div class="section-title">2. 距离限制 (离我多远)</div>
@@ -154,7 +166,8 @@
         <option value="10000">10 公里内</option>
     </select>
 
-    <button id="locate-btn" onclick="startRandomSelection()">🎲 开始随机选点</button>
+    <!-- 默认禁用，等待数据加载 -->
+    <button id="locate-btn" disabled onclick="startRandomSelection()">⏳ 等待地图数据...</button>
 
     <div id="result-box" class="result-box">
         <div class="result-title">推荐地点：</div>
@@ -170,18 +183,18 @@
     }
 </script>
 
-<!-- 加载插件：DistrictSearch(行政区), GeometryUtil(几何计算), Geolocation(定位), Geocoder(地址解析) -->
+<!-- 加载插件 -->
 <script type="text/javascript" src="https://webapi.amap.com/maps?v=2.0&key=43ac1e3a18e5e369343f375d3d014c4e&plugin=AMap.DistrictSearch,AMap.GeometryUtil,AMap.Geolocation,AMap.Geocoder,AMap.ToolBar,AMap.Scale"></script>
 
 <script type="text/javascript">
     // 全局变量
     var map;
-    var userLocation = null; // 用户当前位置
-    var userMarker = null;   // 用户位置标记
-    var targetMarker = null; // 随机目标标记
-    var districtPolygons = {}; // 缓存各区的边界数据 { '鼓楼区': [PolygonObj, ...], ... }
-    var loadedDistricts = [];  // 已加载的区列表
-    var isLocating = false;
+    var userLocation = null; 
+    var userMarker = null;
+    var targetMarker = null;
+    var districtPolygons = {}; // 缓存边界数据
+    var totalDistrictsToLoad = 0;
+    var loadedDistrictsCount = 0;
 
     // 初始化
     if (typeof AMap !== 'undefined') {
@@ -193,7 +206,7 @@
     function initMap() {
         map = new AMap.Map('container', {
             zoom: 11,
-            center: [119.306239, 26.075302], // 福州中心
+            center: [119.306239, 26.075302], 
             viewMode: '2D',
             resizeEnable: true
         });
@@ -201,71 +214,62 @@
         map.addControl(new AMap.Scale());
         map.addControl(new AMap.ToolBar({position: {top: '110px', right: '10px'}}));
 
-        // 1. 初始化用户定位
+        // 1. 定位
         var geolocation = new AMap.Geolocation({
             enableHighAccuracy: true,
             timeout: 10000,
             buttonOffset: new AMap.Pixel(10, 20),
-            zoomToAccuracy: false, // 别自动缩放，以免干扰视野
+            zoomToAccuracy: false,
             buttonPosition: 'RB'
         });
         map.addControl(geolocation);
         
-        // 监听定位结果，更新全局变量
         geolocation.on('complete', function(data) {
             userLocation = data.position;
             console.log("用户位置更新:", userLocation);
-        });
-        geolocation.on('error', function(err) {
-            console.warn("定位失败 (可能需要HTTPS环境):", err);
+            // 如果是首次定位成功，自动更新一下当前距离模式的状态提示（可选）
         });
         
-        // 自动触发一次定位
         geolocation.getCurrentPosition();
 
-        // 2. 加载福州行政区数据
+        // 2. 加载行政区
         loadFuzhouDistricts();
     }
 
-    // 加载行政区数据
     function loadFuzhouDistricts() {
         var districtSearch = new AMap.DistrictSearch({
             level: 'city',
-            subdistrict: 1, // 返回下一级行政区
-            extensions: 'all' // 返回行政区边界坐标
+            subdistrict: 1, 
+            extensions: 'all' 
         });
 
-        // 查询福州市 (adcode: 350100)
         districtSearch.search('350100', function(status, result) {
             if(status === 'complete') {
                 var subDistricts = result.districtList[0].districtList;
                 var listHtml = '';
                 
-                // 遍历下级区县
+                totalDistrictsToLoad = subDistricts.length;
+                
                 subDistricts.forEach(function(district) {
                     var name = district.name;
-                    var adcode = district.adcode;
-                    
-                    // 过滤掉不需要的区域（根据需要可选，这里默认全部显示）
-                    loadedDistricts.push({ name: name, adcode: adcode });
-                    
+                    // 生成HTML
                     listHtml += `
                         <label class="district-item">
                             <input type="checkbox" name="district" value="${name}" checked>
                             ${name}
                         </label>
                     `;
-
-                    // 异步获取每个区的详细边界（因为 search('福州市') 只返回了名字，没返回详细子边界）
+                    // 并行加载边界
                     loadDistrictBoundaries(name);
                 });
 
                 document.getElementById('district-list').innerHTML = listHtml;
+            } else {
+                document.getElementById('district-list').innerHTML = '<div class="loading-text">获取行政区列表失败</div>';
             }
         });
     }
 
-    // 获取单个区的边界并缓存
     function loadDistrictBoundaries(name) {
         var opts = {
             subdistrict: 0, 
@@ -275,22 +279,39 @@
         var district = new AMap.DistrictSearch(opts);
         
         district.search('福州市' + name, function(status, result) {
-            if (status === 'complete') {
+            if (status === 'complete' && result.districtList && result.districtList.length > 0) {
                 var bounds = result.districtList[0].boundaries;
                 if (bounds) {
-                    // 缓存边界数据：bounds 是一个数组，包含多个经纬度数组（处理飞地/岛屿）
-                    districtPolygons[name] = bounds.map(path => path);
+                    // 过滤掉点数太少的路径（可能是噪音或极小岛屿），提高命中率
+                    var validBounds = bounds.filter(path => path.length > 5);
+                    if (validBounds.length > 0) {
+                        districtPolygons[name] = validBounds;
+                    }
                 }
             }
+            
+            // 更新进度
+            loadedDistrictsCount++;
+            checkDataReady();
         });
     }
 
-    // 核心逻辑：开始随机选点
+    function checkDataReady() {
+        if (loadedDistrictsCount >= totalDistrictsToLoad) {
+            var btn = document.getElementById('locate-btn');
+            btn.disabled = false;
+            btn.innerText = "🎲 开始随机选点";
+            btn.style.backgroundColor = "#2563eb";
+            
+            document.getElementById('data-status-dot').className = "status-badge status-ready";
+            document.getElementById('data-status-text').innerText = "数据已就绪";
+        }
+    }
+
     async function startRandomSelection() {
         var btn = document.getElementById('locate-btn');
         var resultBox = document.getElementById('result-box');
         
-        // 1. 获取选中的区域
         var checkboxes = document.querySelectorAll('input[name="district"]:checked');
         var selectedDistricts = Array.from(checkboxes).map(cb => cb.value);
 
@@ -299,97 +320,94 @@
             return;
         }
 
-        // 2. 获取距离限制
         var distanceLimit = parseInt(document.getElementById('distance-select').value);
-        
-        // 如果有距离限制，必须先有用户坐标
         if (distanceLimit > 0 && !userLocation) {
-            alert("需要获取您的位置才能计算距离。\n请检查浏览器是否允许定位，或切换到'无限制'模式。");
+            alert("需要获取您的位置才能计算距离。\n请检查定位权限。");
             return;
         }
 
         btn.disabled = true;
-        btn.innerText = "正在寻找合适地点...";
+        btn.innerText = "正在计算...";
         resultBox.style.display = 'none';
-        
-        // 清除旧标记
         if (targetMarker) map.remove(targetMarker);
 
-        // 3. 尝试生成点 (重试机制)
-        // 为什么要重试？因为我们在矩形范围内随机生成点，可能这个点不在多边形内(在边界外)，或者超出距离限制。
-        var foundPoint = null;
-        var maxAttempts = 100; // 最大尝试次数
+        // 使用 setTimeout 让 UI 有机会刷新 "正在计算..." 文字
+        setTimeout(() => {
+            var foundPoint = findValidPoint(selectedDistricts, distanceLimit);
+            
+            btn.disabled = false;
+            btn.innerText = "🎲 开始随机选点";
+
+            if (foundPoint) {
+                showResult(foundPoint);
+            } else {
+                alert("未找到符合条件的地点。\n\n建议：\n1. 如果开启了距离限制，请尝试扩大范围。\n2. 增加选择的行政区数量。");
+            }
+        }, 50);
+    }
+
+    function findValidPoint(selectedDistricts, distanceLimit) {
+        // 增加最大尝试次数到 500
+        var maxAttempts = 500; 
 
         for (var i = 0; i < maxAttempts; i++) {
-            // A. 随机选一个区
+            // 1. 随机选区
             var randomDistrictName = selectedDistricts[Math.floor(Math.random() * selectedDistricts.length)];
             var boundaries = districtPolygons[randomDistrictName];
             
-            if (!boundaries) continue; // 数据可能还没加载完
+            if (!boundaries || boundaries.length === 0) continue;
 
-            // B. 在该区内生成一个随机点
-            var point = generateRandomPointInBoundaries(boundaries);
+            // 2. 随机选该区的一个多边形块 (权重优化：稍微倾向于长路径，但也保留随机性)
+            // 这里简单随机即可，因为我们在 loadDistrictBoundaries 已经过滤了极小的噪点
+            var path = boundaries[Math.floor(Math.random() * boundaries.length)];
+            
+            // 3. 在多边形的 Bounding Box 内生成点
+            var point = generatePointInPath(path);
             
             if (point) {
-                // C. 检查距离限制
+                // 4. 距离校验
                 if (distanceLimit > 0) {
                     var distance = AMap.GeometryUtil.distance(userLocation, point);
                     if (distance <= distanceLimit) {
-                        foundPoint = { pos: point, dist: distance };
-                        break; // 找到了！
+                        return { pos: point, dist: distance };
                     }
                 } else {
-                    foundPoint = { pos: point, dist: -1 };
-                    break; // 找到了！(无距离限制)
+                    return { pos: point, dist: -1 };
                 }
             }
         }
-
-        btn.disabled = false;
-        btn.innerText = "🎲 开始随机选点";
-
-        if (foundPoint) {
-            showResult(foundPoint);
-        } else {
-            alert("未找到符合条件的地点。\n\n可能原因：\n1. 距离限制太小，您所在的区域不在所选行政区内。\n2. 请尝试增加距离或选择更多区域。");
-        }
+        return null;
     }
 
-    // 在多边形集合中生成随机点
-    function generateRandomPointInBoundaries(boundaries) {
-        // 1. 随机选一个多边形块 (有的区有飞地，是多个多边形)
-        var path = boundaries[Math.floor(Math.random() * boundaries.length)];
-        
-        // 2. 计算该多边形的 Bounding Box (最小外接矩形)
+    function generatePointInPath(path) {
+        // 计算 BBox
         var minLng = 180, maxLng = 0, minLat = 90, maxLat = 0;
-        path.forEach(p => {
-            minLng = Math.min(minLng, p.lng);
-            maxLng = Math.max(maxLng, p.lng);
-            minLat = Math.min(minLat, p.lat);
-            maxLat = Math.max(maxLat, p.lat);
-        });
+        
+        // 快速遍历获取边界
+        for(var i=0; i<path.length; i++) {
+            var p = path[i];
+            if(p.lng < minLng) minLng = p.lng;
+            if(p.lng > maxLng) maxLng = p.lng;
+            if(p.lat < minLat) minLat = p.lat;
+            if(p.lat > maxLat) maxLat = p.lat;
+        }
 
-        // 3. 在矩形内随机生成一个坐标
+        // 生成随机点
         var randomLng = Math.random() * (maxLng - minLng) + minLng;
         var randomLat = Math.random() * (maxLat - minLat) + minLat;
         var randomPoint = new AMap.LngLat(randomLng, randomLat);
 
-        // 4. 关键：判断点是否真的在多边形内部 (使用 GeometryUtil)
-        var isInside = AMap.GeometryUtil.isPointInRing(randomPoint, path);
-
-        if (isInside) {
+        // 几何判断：点是否在多边形内
+        if (AMap.GeometryUtil.isPointInRing(randomPoint, path)) {
             return randomPoint;
-        } else {
-            return null; // 失败，需要在外层循环重试
         }
+        return null;
     }
 
-    // 展示结果
     function showResult(data) {
         var point = data.pos;
         var dist = data.dist;
 
-        // 1. 添加标记
         targetMarker = new AMap.Marker({
             position: point,
             animation: 'AMAP_ANIMATION_DROP',
@@ -397,23 +415,20 @@
         });
         map.add(targetMarker);
         
-        // 2. 视野自适应
         if (userLocation && dist > 0) {
-            map.setFitView([userMarker, targetMarker]); // 缩放到能看到两点
+            map.setFitView([userMarker, targetMarker], false, [50, 50, 50, 50]);
         } else {
             map.setCenter(point);
             map.setZoom(15);
         }
 
-        // 3. 逆地理编码 (获取地址)
         var geocoder = new AMap.Geocoder();
         geocoder.getAddress(point, function(status, result) {
-            var addressText = "未知地点";
+            var addressText = "位置解析失败";
             if (status === 'complete' && result.regeocode) {
                 addressText = result.regeocode.formattedAddress;
             }
             
-            // 更新 UI
             document.getElementById('result-box').style.display = 'block';
             document.getElementById('result-address').innerText = addressText;
             document.getElementById('result-distance').innerText = dist > 0 ? Math.round(dist) : "未知";
