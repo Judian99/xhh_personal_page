@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="initial-scale=1.0, user-scalable=no, width=device-width, viewport-fit=cover">
-    <title>📷 摄影扫街 - 随机选点器 (移动端优化版)</title>
+    <title>📷 摄影扫街选点器</title>
     <style>
         html, body, #container {
             width: 100%;
@@ -164,6 +164,14 @@
         .btn-transit { background-color: #059669; }
         .btn-riding { background-color: #d97706; }
         .btn-driving { background-color: #4f46e5; }
+        
+        /* 唤起APP按钮 */
+        .btn-app {
+            background-color: #ea580c; 
+            margin-top: 8px;
+            color: white;
+        }
+        .btn-app:hover { background-color: #c2410c; }
 
         .result-box {
             margin-top: 16px;
@@ -297,12 +305,12 @@
     <div class="section-title">选点范围设置</div>
     <select id="distance-select">
         <option value="-1">无限制 (当前地图视野内随机)</option>
-        <option value="1000">1 公里内 (步行)</option>
-        <option value="3000">3 公里内 (骑行)</option>
+        <option value="1000">1 公里内</option>
+        <option value="3000">3 公里内</option>
         <option value="5000">5 公里内</option>
         <option value="10000">10 公里内</option>
-        <option value="20000">20 公里内 (驾车短途)</option> <!-- 新增 -->
-        <option value="30000">30 公里内 (驾车远途)</option> <!-- 新增 -->
+        <option value="20000">20 公里内</option> 
+        <option value="30000">30 公里内</option> 
     </select>
 
     <button id="locate-btn" onclick="startRandomSelection()">🎲 开始随机选点</button>
@@ -317,6 +325,7 @@
             <button class="btn-riding" onclick="planRoute('riding')">🚲 骑行</button>
             <button class="btn-driving" onclick="planRoute('driving')">🚗 驾车</button>
         </div>
+        <button class="btn-app" onclick="openAmapApp()">🚀 唤起高德APP导航</button>
     </div>
 </div>
 
@@ -455,24 +464,13 @@
             btn.disabled = false;
             btn.innerText = "🎲 开始随机选点";
             
-            // 选完后，虽然菜单隐藏了，但我们需要让菜单处于“一旦打开就能看到结果”的状态
-            // 或者我们可以保持菜单隐藏，只在地图上显示标记？
-            // 现在的逻辑：隐藏菜单。用户如果想看详细地址或导航，需要点击“设置/重新选点”按钮重新打开菜单。
-            // 改进体验：选点成功后，可以保持菜单隐藏，但是当用户再次打开菜单时，结果框是显示状态。
-            
             if (foundPoint) {
                 showResult(foundPoint);
-                // 选点成功，自动打开菜单展示结果 (如果希望用户看结果的话)
-                // 需求是“点击选点后自动隐藏菜单”，所以这里保持隐藏。
-                // 提示用户
-                AMap.UI && AMap.UI.loadUI(['overlay/SimpleInfoWindow'], function(SimpleInfoWindow) {
-                   // 可选：使用 InfoWindow 显示结果
-                });
             } else {
                 alert("生成失败，请重试");
                 toggleMenu(true); // 失败了就打开菜单让用户重试
             }
-        }, 300); // 稍微延迟一点，让动画更流畅
+        }, 300); 
     }
 
     function generateRandomPoint(distanceLimit) {
@@ -545,11 +543,6 @@
             document.getElementById('result-box').style.display = 'block';
             document.getElementById('result-address').innerText = addressText;
             document.getElementById('result-distance').innerText = dist > 0 ? Math.round(dist) : "未知";
-            
-            // 这里有一个交互细节：
-            // 菜单已经自动隐藏了。为了让用户知道结果，我们可以再次短暂显示菜单，或者让用户手动点开。
-            // 根据需求 "自动隐藏菜单"，我们保持隐藏。用户可以通过地图上的 Label 看到这是个点。
-            // 如果用户想导航，他们会点击左下角的 "设置" 按钮回来，这时候结果框已经在那里了。
         });
     }
 
@@ -600,6 +593,22 @@
             riding.search(userLocation, targetPoint, handleRouteCallback('骑行'));
         }
     }
+    
+    // 唤起高德APP导航
+    function openAmapApp() {
+        if (!targetPoint) {
+            alert("请先生成一个随机点");
+            return;
+        }
+        
+        if (confirm("即将离开网页，唤起高德地图APP进行导航，是否继续？")) {
+            var lng = targetPoint.lng;
+            var lat = targetPoint.lat;
+            // 使用高德 URI API，callnative=1 尝试唤起客户端，否则跳转Web版
+            var url = `https://uri.amap.com/navigation?to=${lng},${lat},推荐扫街点&mode=car&policy=1&src=randomwalker&coordinate=gaode&callnative=1`;
+            window.location.href = url;
+        }
+    }
 
     function handleRouteCallback(typeName) {
         return function(status, result) {
@@ -622,9 +631,6 @@
         document.getElementById('route-panel').style.display = 'none';
         clearAllRoutes();
         if (targetMarker) map.setCenter(targetMarker.getPosition());
-        
-        // 关闭路线面板后，重新显示主菜单悬浮按钮（如果它是隐藏的话）
-        // 实际上 toggleMenu(false) 已经确保悬浮按钮显示了
     }
 </script>
 </body>
