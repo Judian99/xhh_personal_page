@@ -3,184 +3,256 @@
 <head>
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <meta name="viewport" content="initial-scale=1.0, user-scalable=no, width=device-width">
-    <title>📷 摄影扫街 - 随机选点器 (全能导航版)</title>
+    <meta name="viewport" content="initial-scale=1.0, user-scalable=no, width=device-width, viewport-fit=cover">
+    <title>📷 摄影扫街 - 随机选点器 (移动端优化版)</title>
     <style>
         html, body, #container {
             width: 100%;
             height: 100%;
             margin: 0;
-            font-family: "PingFang SC", "Microsoft YaHei", sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
             overflow: hidden;
+            background-color: #f0f2f5;
         }
         
-        /* --- 左侧控制面板 --- */
+        /* --- 唤起菜单的悬浮按钮 --- */
+        .show-menu-btn {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            z-index: 900;
+            background: white;
+            border: none;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+            padding: 10px 15px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: bold;
+            color: #333;
+            cursor: pointer;
+            display: none; /* 默认隐藏，由JS控制显示 */
+            align-items: center;
+        }
+        .show-menu-btn svg { margin-right: 5px; }
+
+        /* --- 控制面板 (PC端: 左上角悬浮) --- */
         .control-panel {
             position: absolute;
-            top: 1rem;
-            left: 1rem;
-            width: 300px;
-            background: rgba(255, 255, 255, 0.95);
-            border-radius: 8px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-            padding: 15px;
+            top: 20px;
+            left: 20px;
+            width: 320px;
+            background: rgba(255, 255, 255, 0.98);
+            border-radius: 12px;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+            padding: 16px;
             z-index: 999;
-            max-height: 90vh;
+            max-height: 85vh;
             overflow-y: auto;
-            backdrop-filter: blur(5px);
-            transition: transform 0.3s ease;
+            backdrop-filter: blur(10px);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            /* 隐藏时的状态 (向左滑出) */
+            transform: translateX(0);
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .control-panel.hidden {
+            transform: translateX(-120%);
+            opacity: 0;
+            pointer-events: none;
         }
 
         .panel-header {
             font-size: 18px;
-            font-weight: bold;
-            margin-bottom: 10px;
-            color: #333;
+            font-weight: 700;
+            margin-bottom: 12px;
+            color: #1f2937;
             display: flex;
             align-items: center;
             justify-content: space-between;
+        }
+        
+        /* 面板内的关闭按钮 */
+        .panel-close-btn {
+            background: #f3f4f6;
+            border: none;
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            color: #6b7280;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: 18px;
         }
 
         /* 卫星图开关 */
         .layer-toggle {
             display: flex;
             align-items: center;
-            font-size: 13px;
-            background: #f3f4f6;
-            padding: 6px 10px;
-            border-radius: 20px;
+            font-size: 14px;
+            background: #f9fafb;
+            padding: 10px 12px;
+            border-radius: 8px;
             cursor: pointer;
             border: 1px solid #e5e7eb;
-            margin-bottom: 15px;
+            margin-bottom: 16px;
             user-select: none;
+            color: #4b5563;
         }
-        .layer-toggle input { margin-right: 6px; cursor: pointer; }
-        .layer-toggle:hover { background: #e5e7eb; }
+        .layer-toggle input { margin-right: 8px; width: 16px; height: 16px; }
 
         .section-title {
-            font-size: 14px;
-            color: #666;
-            margin: 10px 0 5px 0;
-            font-weight: bold;
+            font-size: 13px;
+            color: #6b7280;
+            margin: 12px 0 6px 0;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
         }
 
-        select, button {
+        /* 优化表单控件 */
+        select {
             width: 100%;
-            padding: 10px;
-            border-radius: 4px;
-            border: 1px solid #ddd;
-            margin-bottom: 10px;
-            font-size: 14px;
+            padding: 12px;
+            border-radius: 8px;
+            border: 1px solid #d1d5db;
+            margin-bottom: 12px;
+            font-size: 15px;
+            background-color: white;
+            appearance: none;
+            background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+            background-repeat: no-repeat;
+            background-position: right 10px center;
+            background-size: 16px;
         }
 
         button {
-            background-color: #2563eb;
-            color: white;
+            width: 100%;
+            padding: 12px;
+            border-radius: 8px;
             border: none;
             cursor: pointer;
-            font-weight: bold;
-            transition: background 0.2s;
+            font-weight: 600;
+            font-size: 15px;
+            transition: transform 0.1s;
         }
-        button:hover { background-color: #1d4ed8; }
-        button:disabled { background-color: #93c5fd; cursor: not-allowed; opacity: 0.7; }
+        button:active { transform: scale(0.98); }
+
+        #locate-btn {
+            background-color: #2563eb;
+            color: white;
+            box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.3);
+        }
+        #locate-btn:hover { background-color: #1d4ed8; }
+        #locate-btn:disabled { background-color: #9ca3af; box-shadow: none; cursor: not-allowed; }
 
         /* 路线按钮组 */
         .route-btn-group {
             display: flex;
-            gap: 5px;
-            margin-top: 8px;
+            gap: 8px;
+            margin-top: 10px;
         }
         .route-btn-group button {
             flex: 1;
-            margin-bottom: 0;
-            padding: 8px 0;
+            padding: 10px 0;
             font-size: 13px;
+            color: white;
         }
 
-        /* 不同的按钮颜色 */
-        .btn-transit { background-color: #10b981; } /* 绿: 公交 */
-        .btn-transit:hover { background-color: #059669; }
-        
-        .btn-driving { background-color: #3b82f6; } /* 蓝: 驾车 */
-        .btn-driving:hover { background-color: #2563eb; }
-
-        .btn-riding { background-color: #f59e0b; } /* 橙: 骑行 */
-        .btn-riding:hover { background-color: #d97706; }
+        .btn-transit { background-color: #059669; }
+        .btn-riding { background-color: #d97706; }
+        .btn-driving { background-color: #4f46e5; }
 
         .result-box {
-            margin-top: 10px;
-            padding: 10px;
-            background: #f0f9ff;
-            border-radius: 4px;
-            border-left: 4px solid #2563eb;
+            margin-top: 16px;
+            padding: 12px;
+            background: #eff6ff;
+            border-radius: 8px;
+            border: 1px solid #bfdbfe;
             display: none;
         }
 
-        .result-title { font-weight: bold; color: #1e40af; font-size: 13px; }
-        .result-addr { margin-top: 4px; font-size: 14px; color: #333; }
-
-        .loading-text { color: #666; font-size: 12px; text-align: center; padding: 10px; }
-        .error-text { color: #dc2626; font-size: 12px; text-align: center; padding: 10px; background: #fee2e2; border-radius: 4px; }
-
-        .status-badge { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 5px; }
+        .result-title { font-weight: 700; color: #1e40af; font-size: 14px; }
+        .result-addr { margin-top: 4px; font-size: 15px; color: #1f2937; line-height: 1.4; }
+        
+        .status-badge { display: inline-block; width: 6px; height: 6px; border-radius: 50%; margin-right: 6px; vertical-align: middle; }
         .status-ready { background-color: #10b981; }
 
-        /* --- 右侧路线面板 --- */
+        /* --- 右侧路线详情面板 --- */
         #route-panel {
             position: absolute;
-            top: 10px;
-            right: 10px;
+            top: 20px;
+            right: 20px;
             width: 320px;
             max-height: 85vh;
             overflow-y: auto;
             background: white;
-            border-radius: 8px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+            border-radius: 12px;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.15);
             z-index: 1000;
             display: none;
         }
-        
-        /* 高德原生面板样式覆盖 */
-        #route-panel .amap-call { background-color: #2563eb; }
-        #route-panel .amap-lib-transfer, 
-        #route-panel .amap-lib-driving,
-        #route-panel .amap-lib-riding { 
-            border-radius: 4px; 
-        }
-        
-        /* 关闭按钮 */
         .close-route-btn {
             position: absolute;
-            top: 5px;
-            right: 5px;
+            top: 8px;
+            right: 8px;
             background: #f3f4f6;
-            border: none;
-            width: 24px;
-            height: 24px;
+            width: 30px;
+            height: 30px;
             border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
             cursor: pointer;
-            font-size: 14px;
-            line-height: 24px;
-            text-align: center;
-            color: #666;
             z-index: 1001;
-            padding: 0;
-            margin: 0;
+            font-size: 18px;
+            color: #666;
+            border: none;
         }
-        .close-route-btn:hover { background: #e5e7eb; color: #333; }
-        
+
+        /* --- 📱 移动端适配 (Bottom Sheet 风格) --- */
         @media (max-width: 480px) {
-            .control-panel {
-                width: calc(100% - 2rem);
+            /* 悬浮按钮位置调整 */
+            .show-menu-btn {
                 top: auto;
-                bottom: 2rem;
-                max-height: 50vh;
+                bottom: 30px; /* 放在底部，方便单手点 */
+                left: 50%;
+                transform: translateX(-50%);
+                box-shadow: 0 4px 12px rgba(0,0,0,0.2);
             }
+
+            /* 移动端控制面板：底部弹出 */
+            .control-panel {
+                top: auto;
+                bottom: 20px;
+                left: 15px;
+                width: calc(100% - 30px); /* 两边留空 */
+                box-sizing: border-box;
+                padding: 20px;
+                
+                /* 隐藏时的状态 (向下沉底) */
+                transform: translateY(0);
+                opacity: 1;
+            }
+
+            .control-panel.hidden {
+                transform: translateY(120%);
+                opacity: 0;
+            }
+
+            /* 增大点击区域 */
+            select, button {
+                padding: 14px;
+                font-size: 16px; /* 防止iOS自动缩放 */
+            }
+
             #route-panel {
-                width: calc(100% - 20px);
                 top: 10px;
                 right: 10px;
-                max-height: 40vh;
+                width: calc(100% - 20px);
+                max-height: 50vh;
             }
         }
     </style>
@@ -189,20 +261,32 @@
 
 <div id="container"></div>
 
-<!-- 路线面板 (用于承载导航结果) -->
+<!-- 唤起菜单按钮 (初始隐藏，面板关闭时显示) -->
+<button id="show-menu-btn" class="show-menu-btn" onclick="toggleMenu(true)">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <line x1="3" y1="12" x2="21" y2="12"></line>
+        <line x1="3" y1="6" x2="21" y2="6"></line>
+        <line x1="3" y1="18" x2="21" y2="18"></line>
+    </svg>
+    设置 / 重新选点
+</button>
+
+<!-- 路线详情面板 -->
 <div id="route-panel">
-    <button class="close-route-btn" onclick="closeRoutePanel()" title="关闭面板">×</button>
+    <button class="close-route-btn" onclick="closeRoutePanel()">×</button>
     <div id="route-content"></div>
 </div>
 
 <!-- 控制面板 -->
-<div class="control-panel">
+<div class="control-panel" id="main-panel">
     <div class="panel-header">
-        <span>📸 扫街随机选点</span>
-        <span style="font-size:12px; font-weight:normal; color:#666;">
-            <span id="data-status-dot" class="status-badge status-ready"></span>
-            <span id="data-status-text">就绪</span>
-        </span>
+        <span>📸 扫街选点器</span>
+        <div style="display:flex; align-items:center;">
+            <span style="font-size:12px; font-weight:normal; color:#6b7280; margin-right:10px;">
+                <span id="data-status-dot" class="status-badge status-ready"></span>就绪
+            </span>
+            <button class="panel-close-btn" onclick="toggleMenu(false)" title="收起菜单">×</button>
+        </div>
     </div>
 
     <label class="layer-toggle">
@@ -213,59 +297,69 @@
     <div class="section-title">选点范围设置</div>
     <select id="distance-select">
         <option value="-1">无限制 (当前地图视野内随机)</option>
-        <option value="1000">1 公里内 (离我步行圈)</option>
-        <option value="3000">3 公里内 (离我骑行圈)</option>
+        <option value="1000">1 公里内 (步行)</option>
+        <option value="3000">3 公里内 (骑行)</option>
         <option value="5000">5 公里内</option>
         <option value="10000">10 公里内</option>
+        <option value="20000">20 公里内 (驾车短途)</option> <!-- 新增 -->
+        <option value="30000">30 公里内 (驾车远途)</option> <!-- 新增 -->
     </select>
 
     <button id="locate-btn" onclick="startRandomSelection()">🎲 开始随机选点</button>
 
     <div id="result-box" class="result-box">
-        <div class="result-title">推荐地点：</div>
+        <div class="result-title">📍 推荐地点：</div>
         <div class="result-addr" id="result-address">...</div>
-        <div style="font-size:12px; color:#666; margin-top:5px;">距您约 <span id="result-distance">-</span> 米</div>
+        <div style="font-size:13px; color:#6b7280; margin-top:5px;">距您约 <span id="result-distance">-</span> 米</div>
         
-        <!-- 导航按钮组 -->
         <div class="route-btn-group">
-            <button class="btn-transit" onclick="planRoute('transit')" title="公交地铁">🚌 公交</button>
-            <button class="btn-riding" onclick="planRoute('riding')" title="骑行导航">🚲 骑行</button>
-            <button class="btn-driving" onclick="planRoute('driving')" title="驾车导航">🚗 驾车</button>
+            <button class="btn-transit" onclick="planRoute('transit')">🚌 公交</button>
+            <button class="btn-riding" onclick="planRoute('riding')">🚲 骑行</button>
+            <button class="btn-driving" onclick="planRoute('driving')">🚗 驾车</button>
         </div>
     </div>
 </div>
 
 <script type="text/javascript">
-    // ⚠️⚠️⚠️ 请先配置安全密钥 (必须在加载 Key 之前)
+    // ⚠️⚠️⚠️ 请先配置安全密钥
     window._AMapSecurityConfig = {
         securityJsCode: '65ff073786c2bf49d673e2e8feb6b5f0', 
     }
 </script>
 
-<!-- 加载插件: 增加 AMap.Driving (驾车) 和 AMap.Riding (骑行) -->
 <script type="text/javascript" src="https://webapi.amap.com/maps?v=2.0&key=43ac1e3a18e5e369343f375d3d014c4e&plugin=AMap.GeometryUtil,AMap.Geolocation,AMap.Geocoder,AMap.ToolBar,AMap.Scale,AMap.TileLayer.Satellite,AMap.Transfer,AMap.Driving,AMap.Riding"></script>
 
 <script type="text/javascript">
-    // 全局变量
     var map;
     var userLocation = null; 
     var userMarker = null;
     var targetMarker = null;
     var targetPoint = null; 
     var satelliteLayer = null; 
-    
-    // 路线规划对象
-    var transfer = null; // 公交
-    var driving = null;  // 驾车
-    var riding = null;   // 骑行
+    var transfer = null; 
+    var driving = null;  
+    var riding = null;   
 
-    // 检查Key配置
+    // 菜单切换逻辑
+    function toggleMenu(show) {
+        var panel = document.getElementById('main-panel');
+        var showBtn = document.getElementById('show-menu-btn');
+        
+        if (show) {
+            panel.classList.remove('hidden');
+            showBtn.style.display = 'none';
+        } else {
+            panel.classList.add('hidden');
+            showBtn.style.display = 'flex'; // 显示悬浮按钮
+        }
+    }
+
     function checkKeyConfig() {
         var scriptTags = document.getElementsByTagName('script');
         for (var i = 0; i < scriptTags.length; i++) {
             if (scriptTags[i].src && scriptTags[i].src.indexOf('webapi.amap.com/maps') !== -1) {
                 if (scriptTags[i].src.indexOf('在此处填写您的Key') !== -1) {
-                    alert('⚠️ 错误：您尚未填写高德地图 API Key！\n请在代码中替换 "在此处填写您的Key"。');
+                    alert('⚠️ 错误：您尚未填写高德地图 API Key！');
                     return false;
                 }
             }
@@ -273,7 +367,6 @@
         return true;
     }
 
-    // 初始化
     if (checkKeyConfig()) {
         if (typeof AMap !== 'undefined') {
             initMap();
@@ -293,11 +386,11 @@
             });
 
             map.addControl(new AMap.Scale());
-            map.addControl(new AMap.ToolBar({position: {top: '120px', right: '10px'}}));
+            // 调整工具条位置，避免遮挡悬浮按钮
+            map.addControl(new AMap.ToolBar({position: {top: '80px', right: '10px'}}));
 
             satelliteLayer = new AMap.TileLayer.Satellite({ zIndex: 1 });
 
-            // 定位
             var geolocation = new AMap.Geolocation({
                 enableHighAccuracy: true,
                 timeout: 10000,
@@ -339,7 +432,7 @@
         var btn = document.getElementById('locate-btn');
         var resultBox = document.getElementById('result-box');
         
-        closeRoutePanel(); // 关闭并清除之前的路线
+        closeRoutePanel();
 
         var distanceLimit = parseInt(document.getElementById('distance-select').value);
         if (distanceLimit > 0 && !userLocation) {
@@ -348,32 +441,46 @@
         }
 
         btn.disabled = true;
-        btn.innerText = "生成坐标中...";
+        btn.innerText = "生成中...";
         resultBox.style.display = 'none';
         
         if (targetMarker) map.remove(targetMarker);
+
+        // 1. 自动隐藏菜单，让用户看地图
+        toggleMenu(false);
 
         setTimeout(() => {
             var foundPoint = generateRandomPoint(distanceLimit);
             
             btn.disabled = false;
             btn.innerText = "🎲 开始随机选点";
-
+            
+            // 选完后，虽然菜单隐藏了，但我们需要让菜单处于“一旦打开就能看到结果”的状态
+            // 或者我们可以保持菜单隐藏，只在地图上显示标记？
+            // 现在的逻辑：隐藏菜单。用户如果想看详细地址或导航，需要点击“设置/重新选点”按钮重新打开菜单。
+            // 改进体验：选点成功后，可以保持菜单隐藏，但是当用户再次打开菜单时，结果框是显示状态。
+            
             if (foundPoint) {
                 showResult(foundPoint);
+                // 选点成功，自动打开菜单展示结果 (如果希望用户看结果的话)
+                // 需求是“点击选点后自动隐藏菜单”，所以这里保持隐藏。
+                // 提示用户
+                AMap.UI && AMap.UI.loadUI(['overlay/SimpleInfoWindow'], function(SimpleInfoWindow) {
+                   // 可选：使用 InfoWindow 显示结果
+                });
             } else {
                 alert("生成失败，请重试");
+                toggleMenu(true); // 失败了就打开菜单让用户重试
             }
-        }, 50); 
+        }, 300); // 稍微延迟一点，让动画更流畅
     }
 
-    // 随机点生成逻辑
     function generateRandomPoint(distanceLimit) {
         var point = null;
         var dist = -1;
 
         if (distanceLimit > 0) {
-            // 模式A: 距离限制
+            // 距离估算：1度 ≈ 111km
             var rangeDegrees = (distanceLimit / 111000) * 1.5;
             
             for(var i=0; i<50; i++) {
@@ -389,7 +496,6 @@
                 }
             }
         } else {
-            // 模式B: 视野内随机
             var bounds = map.getBounds();
             var southWest = bounds.getSouthWest();
             var northEast = bounds.getNorthEast();
@@ -413,25 +519,22 @@
         targetPoint = data.pos; 
         var dist = data.dist;
 
-        // 添加标记
         targetMarker = new AMap.Marker({
             position: targetPoint,
             animation: 'AMAP_ANIMATION_DROP',
             title: '扫街目的地',
             label: {
-                content: '<div style="background-color:white; border:1px solid #2563eb; padding:4px 8px; border-radius:4px; font-size:12px; color:#2563eb; font-weight:bold;">📷 推荐扫街点</div>',
-                direction: 'top'
+                content: '<div style="background-color:white; border:1px solid #2563eb; padding:4px 8px; border-radius:4px; font-size:12px; color:#2563eb; font-weight:bold; box-shadow:0 2px 4px rgba(0,0,0,0.2);">📸 推荐点</div>',
+                direction: 'top',
+                offset: new AMap.Pixel(0, -5)
             }
         });
         map.add(targetMarker);
         
-        // 【新增】自动将点位置于视图中心
         map.setCenter(targetPoint);
-        // 如果当前缩放级别太小(看全城)，则拉近一点；如果已经很近了，就保持不动
-        if (map.getZoom() < 14) {
-             map.setZoom(15);
-        }
+        if (map.getZoom() < 14) map.setZoom(15);
 
+        // 填充结果面板数据
         var geocoder = new AMap.Geocoder();
         geocoder.getAddress(targetPoint, function(status, result) {
             var addressText = "位置解析失败";
@@ -442,27 +545,32 @@
             document.getElementById('result-box').style.display = 'block';
             document.getElementById('result-address').innerText = addressText;
             document.getElementById('result-distance').innerText = dist > 0 ? Math.round(dist) : "未知";
+            
+            // 这里有一个交互细节：
+            // 菜单已经自动隐藏了。为了让用户知道结果，我们可以再次短暂显示菜单，或者让用户手动点开。
+            // 根据需求 "自动隐藏菜单"，我们保持隐藏。用户可以通过地图上的 Label 看到这是个点。
+            // 如果用户想导航，他们会点击左下角的 "设置" 按钮回来，这时候结果框已经在那里了。
         });
     }
 
-    // --- 综合路线规划功能 ---
     function planRoute(type) {
         if (!userLocation || !targetPoint) {
             alert("缺少起点或终点信息");
             return;
         }
+        
+        // 规划路线时，先隐藏主菜单，显示路线面板
+        toggleMenu(false); 
 
         var panel = document.getElementById('route-panel');
         var content = document.getElementById('route-content');
         panel.style.display = 'block';
         
-        // 清除所有现有路线
         clearAllRoutes();
 
         content.innerHTML = '<div class="loading-text">正在规划路线...</div>';
 
         if (type === 'transit') {
-            // 公交
             if (!transfer) {
                 transfer = new AMap.Transfer({
                     map: map,
@@ -474,7 +582,6 @@
             transfer.search(userLocation, targetPoint, handleRouteCallback('公交'));
             
         } else if (type === 'driving') {
-            // 驾车
             if (!driving) {
                 driving = new AMap.Driving({
                     map: map,
@@ -484,7 +591,6 @@
             driving.search(userLocation, targetPoint, handleRouteCallback('驾车'));
 
         } else if (type === 'riding') {
-            // 骑行
             if (!riding) {
                 riding = new AMap.Riding({
                     map: map,
@@ -495,19 +601,17 @@
         }
     }
 
-    // 路线回调处理闭包
     function handleRouteCallback(typeName) {
         return function(status, result) {
             if (status === 'complete') {
                 console.log(typeName + '规划成功');
             } else {
                 document.getElementById('route-content').innerHTML = 
-                    '<div class="error-text">' + typeName + '规划失败<br>距离太近或无数据</div>';
+                    '<div class="error-text">' + typeName + '规划失败<br>可能距离太近或无数据</div>';
             }
         };
     }
 
-    // 清除所有路线实例
     function clearAllRoutes() {
         if (transfer) transfer.clear();
         if (driving) driving.clear();
@@ -515,15 +619,12 @@
     }
 
     function closeRoutePanel() {
-        var panel = document.getElementById('route-panel');
-        panel.style.display = 'none';
-        
+        document.getElementById('route-panel').style.display = 'none';
         clearAllRoutes();
-
-        // 恢复视野到目标点
-        if (targetMarker) {
-             map.setCenter(targetMarker.getPosition());
-        }
+        if (targetMarker) map.setCenter(targetMarker.getPosition());
+        
+        // 关闭路线面板后，重新显示主菜单悬浮按钮（如果它是隐藏的话）
+        // 实际上 toggleMenu(false) 已经确保悬浮按钮显示了
     }
 </script>
 </body>
