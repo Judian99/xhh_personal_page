@@ -4,20 +4,22 @@
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="initial-scale=1.0, user-scalable=no, width=device-width">
-    <title>📷 福州摄影扫街 - 随机选点器</title>
+    <title>📷 摄影扫街 - 随机选点器 (视野版)</title>
     <style>
         html, body, #container {
             width: 100%;
             height: 100%;
             margin: 0;
             font-family: "PingFang SC", "Microsoft YaHei", sans-serif;
+            overflow: hidden; /* 防止页面整体滚动 */
         }
         
+        /* --- 左侧控制面板 --- */
         .control-panel {
             position: absolute;
             top: 1rem;
             left: 1rem;
-            width: 340px;
+            width: 300px; /* 稍微调窄一点，因为没有列表了 */
             background: rgba(255, 255, 255, 0.95);
             border-radius: 8px;
             box-shadow: 0 4px 12px rgba(0,0,0,0.15);
@@ -26,6 +28,7 @@
             max-height: 90vh;
             overflow-y: auto;
             backdrop-filter: blur(5px);
+            transition: transform 0.3s ease;
         }
 
         .panel-header {
@@ -38,7 +41,7 @@
             justify-content: space-between;
         }
 
-        /* 卫星图开关样式 */
+        /* 卫星图开关 */
         .layer-toggle {
             display: flex;
             align-items: center;
@@ -51,40 +54,14 @@
             margin-bottom: 15px;
             user-select: none;
         }
-        .layer-toggle input {
-            margin-right: 6px;
-            cursor: pointer;
-        }
-        .layer-toggle:hover {
-            background: #e5e7eb;
-        }
+        .layer-toggle input { margin-right: 6px; cursor: pointer; }
+        .layer-toggle:hover { background: #e5e7eb; }
 
         .section-title {
             font-size: 14px;
             color: #666;
             margin: 10px 0 5px 0;
             font-weight: bold;
-        }
-
-        .district-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr 1fr;
-            gap: 8px;
-            margin-bottom: 15px;
-        }
-
-        .district-item {
-            display: flex;
-            align-items: center;
-            font-size: 12px;
-            cursor: pointer;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-        
-        .district-item input {
-            margin-right: 4px;
         }
 
         select, button {
@@ -104,16 +81,15 @@
             font-weight: bold;
             transition: background 0.2s;
         }
+        button:hover { background-color: #1d4ed8; }
+        button:disabled { background-color: #93c5fd; cursor: not-allowed; opacity: 0.7; }
 
-        button:hover {
-            background-color: #1d4ed8;
+        /* 公交路线按钮样式 */
+        .transit-btn {
+            background-color: #10b981; /* 绿色 */
+            margin-top: 8px;
         }
-
-        button:disabled {
-            background-color: #93c5fd;
-            cursor: not-allowed;
-            opacity: 0.7;
-        }
+        .transit-btn:hover { background-color: #059669; }
 
         .result-box {
             margin-top: 10px;
@@ -124,41 +100,66 @@
             display: none;
         }
 
-        .result-title {
-            font-weight: bold;
-            color: #1e40af;
-            font-size: 13px;
-        }
-        .result-addr {
-            margin-top: 4px;
-            font-size: 14px;
-            color: #333;
-        }
+        .result-title { font-weight: bold; color: #1e40af; font-size: 13px; }
+        .result-addr { margin-top: 4px; font-size: 14px; color: #333; }
 
-        .loading-text {
-            color: #666;
-            font-size: 12px;
-            text-align: center;
-            padding: 10px;
-        }
+        .loading-text { color: #666; font-size: 12px; text-align: center; padding: 10px; }
+        .error-text { color: #dc2626; font-size: 12px; text-align: center; padding: 10px; background: #fee2e2; border-radius: 4px; }
 
-        /* 状态指示器 */
-        .status-badge {
-            display: inline-block;
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            margin-right: 5px;
-        }
+        .status-badge { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 5px; }
         .status-loading { background-color: #fbbf24; }
         .status-ready { background-color: #10b981; }
+        .status-error { background-color: #ef4444; }
+
+        /* --- 右侧公交路线面板 --- */
+        #route-panel {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            width: 300px;
+            max-height: 85vh;
+            overflow-y: auto;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+            z-index: 1000;
+            display: none; /* 默认隐藏 */
+        }
+        
+        #route-panel .amap-call { background-color: #2563eb; }
+        #route-panel .amap-lib-transfer { border-radius: 4px; }
+        
+        /* 关闭按钮 */
+        .close-route-btn {
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            background: #eee;
+            border: none;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 14px;
+            line-height: 24px;
+            text-align: center;
+            color: #666;
+            z-index: 1001;
+        }
+        .close-route-btn:hover { background: #ddd; color: #333; }
         
         @media (max-width: 480px) {
             .control-panel {
                 width: calc(100% - 2rem);
                 top: auto;
                 bottom: 2rem;
-                max-height: 60vh;
+                max-height: 50vh;
+            }
+            #route-panel {
+                width: calc(100% - 20px);
+                top: 10px;
+                right: 10px;
+                max-height: 40vh;
             }
         }
     </style>
@@ -167,41 +168,48 @@
 
 <div id="container"></div>
 
+<!-- 公交路线面板 -->
+<div id="route-panel">
+    <button class="close-route-btn" onclick="closeRoutePanel()" title="关闭">×</button>
+    <div id="route-content"></div>
+</div>
+
+<!-- 控制面板 -->
 <div class="control-panel">
     <div class="panel-header">
         <span>📸 扫街随机选点</span>
+        <!-- 移除详细的状态文字，因为不再加载复杂数据 -->
         <span style="font-size:12px; font-weight:normal; color:#666;">
-            <span id="data-status-dot" class="status-badge status-loading"></span>
-            <span id="data-status-text">数据加载中...</span>
+            <span id="data-status-dot" class="status-badge status-ready"></span>
+            <span id="data-status-text">就绪</span>
         </span>
     </div>
 
-    <!-- 卫星图切换开关 -->
     <label class="layer-toggle">
         <input type="checkbox" id="satellite-checkbox" onchange="toggleSatellite()">
         🛰️ 开启卫星实景图
     </label>
 
-    <div class="section-title">1. 选择区域 (可视范围)</div>
-    <div id="district-list" class="district-grid">
-        <div class="loading-text">正在获取行政区划...</div>
-    </div>
+    <!-- 移除了行政区选择列表 -->
 
-    <div class="section-title">2. 距离限制 (离我多远)</div>
+    <div class="section-title">选点范围设置</div>
     <select id="distance-select">
-        <option value="-1">无限制 (所选区域内随机)</option>
-        <option value="1000">1 公里内 (步行圈)</option>
-        <option value="3000">3 公里内 (骑行圈)</option>
+        <option value="-1">无限制 (当前地图视野内随机)</option>
+        <option value="1000">1 公里内 (离我步行圈)</option>
+        <option value="3000">3 公里内 (离我骑行圈)</option>
         <option value="5000">5 公里内</option>
         <option value="10000">10 公里内</option>
     </select>
 
-    <button id="locate-btn" disabled onclick="startRandomSelection()">⏳ 等待地图数据...</button>
+    <!-- 默认启用，无需等待数据 -->
+    <button id="locate-btn" onclick="startRandomSelection()">🎲 开始随机选点</button>
 
     <div id="result-box" class="result-box">
         <div class="result-title">推荐地点：</div>
         <div class="result-addr" id="result-address">...</div>
         <div style="font-size:12px; color:#666; margin-top:5px;">距您约 <span id="result-distance">-</span> 米</div>
+        <!-- 公交按钮 -->
+        <button class="transit-btn" onclick="planBusRoute()">🚌 查看公交/地铁路线</button>
     </div>
 </div>
 
@@ -212,8 +220,11 @@
     }
 </script>
 
-<!-- 加载插件: 增加了 AMap.DistrictLayer 用于行政区渲染, AMap.TileLayer.Satellite 用于卫星图 -->
-<script type="text/javascript" src="https://webapi.amap.com/maps?v=2.0&key=43ac1e3a18e5e369343f375d3d014c4e&plugin=AMap.DistrictSearch,AMap.GeometryUtil,AMap.Geolocation,AMap.Geocoder,AMap.ToolBar,AMap.Scale,AMap.DistrictLayer,AMap.TileLayer.Satellite"></script>
+<!-- 加载插件: 
+    - 移除了 AMap.DistrictSearch, AMap.DistrictLayer
+    - 保留了 GeometryUtil, Geolocation, Geocoder, ToolBar, Scale, Satellite, Transfer
+-->
+<script type="text/javascript" src="https://webapi.amap.com/maps?v=2.0&key=43ac1e3a18e5e369343f375d3d014c4e&plugin=AMap.GeometryUtil,AMap.Geolocation,AMap.Geocoder,AMap.ToolBar,AMap.Scale,AMap.TileLayer.Satellite,AMap.Transfer"></script>
 
 <script type="text/javascript">
     // 全局变量
@@ -221,223 +232,111 @@
     var userLocation = null; 
     var userMarker = null;
     var targetMarker = null;
-    var districtLayer = null; // 行政区图层
-    var satelliteLayer = null; // 卫星图层
-    var districtPolygons = {}; // 缓存边界数据 (用于计算)
-    var totalDistrictsToLoad = 0;
-    var loadedDistrictsCount = 0;
-    var selectedAdcodes = new Set(); // 当前选中的行政区代码
+    var targetPoint = null; 
+    var satelliteLayer = null; 
+    var transfer = null; 
+
+    // 检查Key配置
+    function checkKeyConfig() {
+        var scriptTags = document.getElementsByTagName('script');
+        for (var i = 0; i < scriptTags.length; i++) {
+            if (scriptTags[i].src && scriptTags[i].src.indexOf('webapi.amap.com/maps') !== -1) {
+                if (scriptTags[i].src.indexOf('在此处填写您的Key') !== -1) {
+                    alert('⚠️ 错误：您尚未填写高德地图 API Key！\n请在代码中替换 "在此处填写您的Key"。');
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
 
     // 初始化
-    if (typeof AMap !== 'undefined') {
-        initMap();
-    } else {
-        alert("地图加载失败，请检查 Key 配置");
+    if (checkKeyConfig()) {
+        if (typeof AMap !== 'undefined') {
+            initMap();
+        } else {
+            alert('地图 API 加载失败');
+        }
     }
 
     function initMap() {
-        // 创建地图
-        map = new AMap.Map('container', {
-            zoom: 10.5,
-            center: [119.306239, 26.075302], 
-            viewMode: '2D',
-            resizeEnable: true,
-            showLabel: true 
-        });
+        try {
+            // 创建地图
+            map = new AMap.Map('container', {
+                zoom: 11,
+                center: [119.306239, 26.075302], // 默认福州，但可拖动
+                viewMode: '2D',
+                resizeEnable: true,
+                showLabel: true 
+            });
 
-        map.addControl(new AMap.Scale());
-        map.addControl(new AMap.ToolBar({position: {top: '110px', right: '10px'}}));
+            map.addControl(new AMap.Scale());
+            map.addControl(new AMap.ToolBar({position: {top: '120px', right: '10px'}}));
 
-        // --- 0. 初始化卫星图层 (默认隐藏) ---
-        satelliteLayer = new AMap.TileLayer.Satellite({
-            zIndex: 1 // 卫星图层级设为1，保证在底图之上，但在行政区图层之下
-        });
-        // 也可以 map.add(satelliteLayer) 然后 hide()，或者需要时再 add
+            // --- 0. 卫星图层 ---
+            satelliteLayer = new AMap.TileLayer.Satellite({ zIndex: 1 });
 
-        // 1. 初始化行政区图层 (DistrictLayer)
-        // 使用 adcode: 350100 (福州市)
-        // 修正：使用 AMap.DistrictLayer.Province 来创建，即使是显示市级以下行政区也是用这个类
-        districtLayer = new AMap.DistrictLayer.Province({
-            zIndex: 10, // 行政区图层层级设为10，保证盖在卫星图上面
-            adcode: ['350100'],
-            depth: 1, 
-            styles: {
-                'fill': function(properties) {
-                    var adcode = properties.adcode;
-                    if (selectedAdcodes.has(String(adcode))) {
-                        // 选中时：如果是卫星图模式，颜色可以稍微淡一点，这里统一用半透明蓝
-                        return 'rgba(37, 99, 235, 0.15)'; 
-                    }
-                    return 'rgba(0,0,0,0)'; 
-                },
-                'province-stroke': 'cornflowerblue',
-                'city-stroke': 'white', 
-                'county-stroke': 'rgba(255,255,255,0.5)' 
-            }
-        });
-        map.add(districtLayer);
+            // --- 1. 定位 ---
+            var geolocation = new AMap.Geolocation({
+                enableHighAccuracy: true,
+                timeout: 10000,
+                buttonOffset: new AMap.Pixel(10, 20),
+                zoomToAccuracy: false,
+                buttonPosition: 'RB'
+            });
+            map.addControl(geolocation);
+            
+            geolocation.on('complete', function(data) {
+                userLocation = data.position;
+                if(!userMarker) {
+                    userMarker = new AMap.Marker({
+                        position: data.position,
+                        content: '<div style="background-color:#3b82f6; width:14px; height:14px; border-radius:50%; border:3px solid white; box-shadow:0 0 8px rgba(0,0,0,0.4);"></div>',
+                        offset: new AMap.Pixel(-9, -9),
+                        zIndex: 100
+                    });
+                    map.add(userMarker);
+                } else {
+                    userMarker.setPosition(data.position);
+                }
+            });
+            geolocation.getCurrentPosition();
 
-        // 2. 定位
-        var geolocation = new AMap.Geolocation({
-            enableHighAccuracy: true,
-            timeout: 10000,
-            buttonOffset: new AMap.Pixel(10, 20),
-            zoomToAccuracy: false,
-            buttonPosition: 'RB'
-        });
-        map.addControl(geolocation);
-        
-        geolocation.on('complete', function(data) {
-            userLocation = data.position;
-            if(!userMarker) {
-                userMarker = new AMap.Marker({
-                    position: data.position,
-                    content: '<div style="background-color:blue; width:12px; height:12px; border-radius:50%; border:2px solid white; box-shadow:0 0 5px rgba(0,0,0,0.3);"></div>',
-                    offset: new AMap.Pixel(-8, -8)
-                });
-                map.add(userMarker);
-            } else {
-                userMarker.setPosition(data.position);
-            }
-        });
-        
-        geolocation.getCurrentPosition();
-
-        // 3. 加载行政区数据
-        loadFuzhouDistricts();
+            // 移除了 loadFuzhouDistricts() 调用
+            
+        } catch (e) {
+            console.error(e);
+            alert("地图初始化出错: " + e.message);
+        }
     }
 
-    // 切换卫星图显示
     function toggleSatellite() {
         var checkbox = document.getElementById('satellite-checkbox');
-        if (checkbox.checked) {
-            map.add(satelliteLayer);
-        } else {
-            map.remove(satelliteLayer);
-        }
-    }
-
-    function loadFuzhouDistricts() {
-        var districtSearch = new AMap.DistrictSearch({
-            level: 'city',
-            subdistrict: 1, 
-            extensions: 'all' 
-        });
-
-        // 搜索福州市
-        districtSearch.search('350100', function(status, result) {
-            if(status === 'complete') {
-                var subDistricts = result.districtList[0].districtList;
-                var listHtml = '';
-                
-                totalDistrictsToLoad = subDistricts.length;
-                
-                subDistricts.sort((a, b) => a.adcode - b.adcode);
-
-                subDistricts.forEach(function(district) {
-                    var name = district.name;
-                    var adcode = district.adcode;
-                    
-                    selectedAdcodes.add(String(adcode));
-
-                    listHtml += `
-                        <label class="district-item" title="${name}">
-                            <input type="checkbox" name="district" value="${adcode}" checked onchange="onDistrictChange()">
-                            ${name}
-                        </label>
-                    `;
-                    loadDistrictBoundaries(adcode, name);
-                });
-
-                document.getElementById('district-list').innerHTML = listHtml;
-                refreshDistrictLayer();
-            } else {
-                document.getElementById('district-list').innerHTML = '<div class="loading-text">获取行政区列表失败</div>';
-            }
-        });
-    }
-
-    function onDistrictChange() {
-        var checkboxes = document.querySelectorAll('input[name="district"]');
-        selectedAdcodes.clear();
-        checkboxes.forEach(cb => {
-            if (cb.checked) {
-                selectedAdcodes.add(cb.value);
-            }
-        });
-        refreshDistrictLayer();
-    }
-
-    function refreshDistrictLayer() {
-        if (!districtLayer) return;
-        districtLayer.setStyles({
-            'fill': function(properties) {
-                var adcode = String(properties.adcode);
-                return selectedAdcodes.has(adcode) ? 'rgba(37, 99, 235, 0.2)' : 'rgba(0,0,0,0)';
-            },
-            'county-stroke': 'rgba(100,149,237,0.5)'
-        });
-    }
-
-    function loadDistrictBoundaries(adcode, name) {
-        var opts = {
-            subdistrict: 0, 
-            extensions: 'all', 
-            level: 'district'
-        };
-        var district = new AMap.DistrictSearch(opts);
-        
-        district.search(adcode, function(status, result) {
-            if (status === 'complete' && result.districtList && result.districtList.length > 0) {
-                var bounds = result.districtList[0].boundaries;
-                if (bounds) {
-                    var validBounds = bounds.filter(path => path.length > 10);
-                    if (validBounds.length > 0) {
-                        districtPolygons[adcode] = validBounds;
-                    }
-                }
-            }
-            loadedDistrictsCount++;
-            checkDataReady();
-        });
-    }
-
-    function checkDataReady() {
-        if (loadedDistrictsCount >= totalDistrictsToLoad) {
-            var btn = document.getElementById('locate-btn');
-            btn.disabled = false;
-            btn.innerText = "🎲 开始随机选点";
-            btn.style.backgroundColor = "#2563eb";
-            
-            document.getElementById('data-status-dot').className = "status-badge status-ready";
-            document.getElementById('data-status-text').innerText = "区域数据就绪";
-        }
+        if (checkbox.checked) map.add(satelliteLayer);
+        else map.remove(satelliteLayer);
     }
 
     async function startRandomSelection() {
         var btn = document.getElementById('locate-btn');
         var resultBox = document.getElementById('result-box');
         
-        var currentSelected = Array.from(selectedAdcodes);
-
-        if (currentSelected.length === 0) {
-            alert("请至少在地图上勾选一个行政区！");
-            return;
-        }
+        closeRoutePanel();
 
         var distanceLimit = parseInt(document.getElementById('distance-select').value);
         if (distanceLimit > 0 && !userLocation) {
-            alert("⚠️ 需要获取您的位置才能计算距离。\n请检查定位权限，或者选择'无限制'模式。");
+            alert("⚠️ 需要获取您的位置才能计算距离。\n请确保已允许浏览器定位，或使用HTTPS/Localhost访问。");
             return;
         }
 
         btn.disabled = true;
-        btn.innerText = "正在地图上搜寻...";
+        btn.innerText = "生成坐标中...";
         resultBox.style.display = 'none';
+        
         if (targetMarker) map.remove(targetMarker);
+        if (transfer) transfer.clear(); 
 
         setTimeout(() => {
-            var foundPoint = findValidPoint(currentSelected, distanceLimit);
+            var foundPoint = generateRandomPoint(distanceLimit);
             
             btn.disabled = false;
             btn.innerText = "🎲 开始随机选点";
@@ -445,85 +344,80 @@
             if (foundPoint) {
                 showResult(foundPoint);
             } else {
-                var msg = "⚠️ 未找到符合条件的地点。\n\n";
-                if (distanceLimit > 0) {
-                    msg += "原因可能为：\n1. 您当前距离所选的【蓝色区域】超过了 " + (distanceLimit/1000) + " 公里。\n2. 请尝试选择离您更近的区域，或选择'无限制'。";
-                } else {
-                    msg += "请稍后重试。";
-                }
-                alert(msg);
+                alert("生成失败，请重试");
             }
         }, 50); 
     }
 
-    function findValidPoint(selectedAdcodeList, distanceLimit) {
-        var maxAttempts = 800; 
+    // 简化的随机点生成逻辑 (纯几何)
+    function generateRandomPoint(distanceLimit) {
+        var point = null;
+        var dist = -1;
 
-        for (var i = 0; i < maxAttempts; i++) {
-            var randomAdcode = selectedAdcodeList[Math.floor(Math.random() * selectedAdcodeList.length)];
-            var boundaries = districtPolygons[randomAdcode];
+        if (distanceLimit > 0) {
+            // --- 模式A: 距离限制 (圆内随机) ---
+            // 在以 userLocation 为中心，distanceLimit 为半径的圆内生成
+            // 简单估算：1度约111km -> 1米约 1/111000度
+            var rangeDegrees = (distanceLimit / 111000) * 1.5; // 稍微扩大范围用于随机生成，然后过滤
             
-            if (!boundaries || boundaries.length === 0) continue;
-
-            var path = boundaries[Math.floor(Math.random() * boundaries.length)];
-            var point = generatePointInPath(path);
-            
-            if (point) {
-                if (distanceLimit > 0) {
-                    var distance = AMap.GeometryUtil.distance(userLocation, point);
-                    if (distance <= distanceLimit) {
-                        return { pos: point, dist: distance };
-                    }
-                } else {
-                    return { pos: point, dist: -1 };
+            for(var i=0; i<50; i++) {
+                var rLng = userLocation.lng + (Math.random() * 2 - 1) * rangeDegrees;
+                var rLat = userLocation.lat + (Math.random() * 2 - 1) * rangeDegrees;
+                var p = new AMap.LngLat(rLng, rLat);
+                var d = AMap.GeometryUtil.distance(userLocation, p);
+                
+                if (d <= distanceLimit) {
+                    point = p;
+                    dist = d;
+                    break;
                 }
             }
+        } else {
+            // --- 模式B: 无限制 (视野内随机) ---
+            // 使用当前地图可视范围边界 (Bounds)
+            var bounds = map.getBounds();
+            var southWest = bounds.getSouthWest();
+            var northEast = bounds.getNorthEast();
+
+            var rLng = southWest.lng + Math.random() * (northEast.lng - southWest.lng);
+            var rLat = southWest.lat + Math.random() * (northEast.lat - southWest.lat);
+            
+            point = new AMap.LngLat(rLng, rLat);
+            if (userLocation) {
+                dist = AMap.GeometryUtil.distance(userLocation, point);
+            }
         }
-        return null;
-    }
 
-    function generatePointInPath(path) {
-        var minLng = 180, maxLng = 0, minLat = 90, maxLat = 0;
-        
-        for(var i=0; i<path.length; i++) {
-            var p = path[i];
-            if(p.lng < minLng) minLng = p.lng;
-            if(p.lng > maxLng) maxLng = p.lng;
-            if(p.lat < minLat) minLat = p.lat;
-            if(p.lat > maxLat) maxLat = p.lat;
-        }
-
-        var randomLng = Math.random() * (maxLng - minLng) + minLng;
-        var randomLat = Math.random() * (maxLat - minLat) + minLat;
-        var randomPoint = new AMap.LngLat(randomLng, randomLat);
-
-        if (AMap.GeometryUtil.isPointInRing(randomPoint, path)) {
-            return randomPoint;
+        if (point) {
+            return { pos: point, dist: dist };
         }
         return null;
     }
 
     function showResult(data) {
-        var point = data.pos;
+        targetPoint = data.pos; 
         var dist = data.dist;
 
         targetMarker = new AMap.Marker({
-            position: point,
+            position: targetPoint,
             animation: 'AMAP_ANIMATION_DROP',
             title: '扫街目的地'
         });
         map.add(targetMarker);
         
-        if (userLocation && dist > 0) {
+        // 如果是在视野内随机生成的，就不一定要缩放到包含“我”
+        // 只有当有距离限制，或者距离适中时才自适应
+        if (userLocation && dist > 0 && dist < 20000) {
             map.setFitView([userMarker, targetMarker], false, [80, 80, 80, 80]);
         } else {
-            map.setCenter(point);
-            map.setZoom(16);
+            map.setCenter(targetPoint);
+            // 保持当前缩放级别或微调，不要让用户迷失方向
+            // map.setZoom(16); 
         }
 
         var geocoder = new AMap.Geocoder();
-        geocoder.getAddress(point, function(status, result) {
-            var addressText = "位置解析失败";
+        geocoder.getAddress(targetPoint, function(status, result) {
+            var addressText = "位置解析失败 (可能是荒野或海洋)";
             if (status === 'complete' && result.regeocode) {
                 addressText = result.regeocode.formattedAddress;
             }
@@ -532,6 +426,47 @@
             document.getElementById('result-address').innerText = addressText;
             document.getElementById('result-distance').innerText = dist > 0 ? Math.round(dist) : "未知";
         });
+    }
+
+    function planBusRoute() {
+        if (!userLocation || !targetPoint) {
+            alert("缺少起点或终点信息");
+            return;
+        }
+
+        var panel = document.getElementById('route-panel');
+        panel.style.display = 'block';
+        document.getElementById('route-content').innerHTML = '<div class="loading-text">正在规划公交路线...</div>';
+
+        if (!transfer) {
+            transfer = new AMap.Transfer({
+                map: map,
+                city: '福州市', // 公交换乘默认城市
+                panel: 'route-content', 
+                policy: AMap.TransferPolicy.LEAST_TIME 
+            });
+        } else {
+            transfer.clear();
+        }
+
+        transfer.search(userLocation, targetPoint, function(status, result) {
+            if (status === 'complete') {
+                console.log('规划成功');
+            } else {
+                document.getElementById('route-content').innerHTML = 
+                    '<div class="error-text">路线规划失败<br>建议步行或该区域无数据</div>';
+            }
+        });
+    }
+
+    function closeRoutePanel() {
+        var panel = document.getElementById('route-panel');
+        panel.style.display = 'none';
+        if (transfer) transfer.clear(); 
+        if (targetMarker) {
+             if (userLocation && map.getZoom() > 10) map.setFitView([userMarker, targetMarker], false, [80, 80, 80, 80]);
+             else map.setCenter(targetMarker.getPosition());
+        }
     }
 </script>
 </body>
