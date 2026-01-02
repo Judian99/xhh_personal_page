@@ -1,0 +1,102 @@
+<!doctype html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="initial-scale=1.0, user-scalable=no, width=device-width">
+    <title>高德地图 - 福州默认点 + 控件 + 定位</title>
+    <style>
+        html, body, #container {
+            width: 100%;
+            height: 100%;
+            margin: 0;
+        }
+        /* 用于显示定位结果的自定义样式（可选） */
+        .info {
+            width: 20rem;
+            padding: .75rem 1.25rem;
+            margin-bottom: 1rem;
+            border-radius: .25rem;
+            position: fixed;
+            top: 1rem;
+            background-color: white;
+            width: auto;
+            min-width: 22rem;
+            border-width: 0;
+            right: 1rem;
+            box-shadow: 0 2px 6px 0 rgba(114, 124, 245, .5);
+            z-index: 999;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+<div id="container"></div>
+
+<div class="info" id="status-info">正在尝试定位...</div>
+
+<script type="text/javascript">
+    // 1. 安全密钥配置
+    window._AMapSecurityConfig = {
+        securityJsCode: '65ff073786c2bf49d673e2e8feb6b5f0', // 例如: 'a1b2c3d4e5...'
+    }
+</script>
+
+<script type="text/javascript" src="https://webapi.amap.com/maps?v=2.0&key=43ac1e3a18e5e369343f375d3d014c4e"></script> 
+
+<script type="text/javascript">
+    if (typeof AMap !== 'undefined') {
+        
+        // 3. 初始化地图（默认显示福州）
+        var map = new AMap.Map('container', {
+            zoom: 13,
+            center: [119.306239, 26.075302], // 福州市坐标
+            viewMode: '2D',
+            resizeEnable: true
+        });
+
+        // 4. 加载插件：工具条、比例尺、定位
+        AMap.plugin(['AMap.ToolBar', 'AMap.Scale', 'AMap.Geolocation'], function(){
+            
+            // --- 添加工具条 ---
+            var toolbar = new AMap.ToolBar(); 
+            map.addControl(toolbar);
+
+            // --- 添加比例尺 ---
+            var scale = new AMap.Scale();
+            map.addControl(scale);
+
+            // --- 【新增】添加定位控件 ---
+            var geolocation = new AMap.Geolocation({
+                enableHighAccuracy: true, // 是否使用高精度定位，默认:true
+                timeout: 10000,           // 超过10秒后停止定位，默认：无穷大
+                buttonOffset: new AMap.Pixel(10, 20), // 定位按钮与设置的停靠位置的偏移量
+                zoomToAccuracy: true,     // 定位成功后调整地图视野范围使定位位置及精度范围视野内可见
+                buttonPosition: 'RB',     // 定位按钮停靠位置，RB表示右下 (Right Bottom)
+                showMarker: true,         // 定位成功后在定位到的位置显示点标记
+                showCircle: true,         // 定位成功后用圆圈表示定位精度范围
+                panToLocation: true       // 定位成功后将定位到的位置作为地图中心点
+            });
+            
+            map.addControl(geolocation);
+
+            // 页面加载完成后立即获取一次当前位置
+            geolocation.getCurrentPosition(function(status, result) {
+                var infoDiv = document.getElementById('status-info');
+                if(status == 'complete'){
+                    infoDiv.innerHTML = "定位成功：" + result.formattedAddress;
+                    console.log("定位结果：", result);
+                }else{
+                    infoDiv.innerHTML = "定位失败：" + result.message;
+                    console.error("定位出错：", result);
+                    // 常见错误：Geolocation permission denied (用户拒绝或非HTTPS)
+                }
+            });
+        });
+
+    } else {
+        alert("地图加载失败，请检查Key");
+    }
+</script>
+</body>
+</html>
