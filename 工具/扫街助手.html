@@ -4,14 +4,14 @@
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="initial-scale=1.0, user-scalable=no, width=device-width">
-    <title>📷 摄影扫街 - 随机选点器 (视野版)</title>
+    <title>📷 摄影扫街 - 随机选点器 (全能导航版)</title>
     <style>
         html, body, #container {
             width: 100%;
             height: 100%;
             margin: 0;
             font-family: "PingFang SC", "Microsoft YaHei", sans-serif;
-            overflow: hidden; /* 防止页面整体滚动 */
+            overflow: hidden;
         }
         
         /* --- 左侧控制面板 --- */
@@ -19,7 +19,7 @@
             position: absolute;
             top: 1rem;
             left: 1rem;
-            width: 300px; /* 稍微调窄一点，因为没有列表了 */
+            width: 300px;
             background: rgba(255, 255, 255, 0.95);
             border-radius: 8px;
             box-shadow: 0 4px 12px rgba(0,0,0,0.15);
@@ -84,12 +84,28 @@
         button:hover { background-color: #1d4ed8; }
         button:disabled { background-color: #93c5fd; cursor: not-allowed; opacity: 0.7; }
 
-        /* 公交路线按钮样式 */
-        .transit-btn {
-            background-color: #10b981; /* 绿色 */
+        /* 路线按钮组 */
+        .route-btn-group {
+            display: flex;
+            gap: 5px;
             margin-top: 8px;
         }
-        .transit-btn:hover { background-color: #059669; }
+        .route-btn-group button {
+            flex: 1;
+            margin-bottom: 0;
+            padding: 8px 0;
+            font-size: 13px;
+        }
+
+        /* 不同的按钮颜色 */
+        .btn-transit { background-color: #10b981; } /* 绿: 公交 */
+        .btn-transit:hover { background-color: #059669; }
+        
+        .btn-driving { background-color: #3b82f6; } /* 蓝: 驾车 */
+        .btn-driving:hover { background-color: #2563eb; }
+
+        .btn-riding { background-color: #f59e0b; } /* 橙: 骑行 */
+        .btn-riding:hover { background-color: #d97706; }
 
         .result-box {
             margin-top: 10px;
@@ -107,34 +123,37 @@
         .error-text { color: #dc2626; font-size: 12px; text-align: center; padding: 10px; background: #fee2e2; border-radius: 4px; }
 
         .status-badge { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 5px; }
-        .status-loading { background-color: #fbbf24; }
         .status-ready { background-color: #10b981; }
-        .status-error { background-color: #ef4444; }
 
-        /* --- 右侧公交路线面板 --- */
+        /* --- 右侧路线面板 --- */
         #route-panel {
             position: absolute;
             top: 10px;
             right: 10px;
-            width: 300px;
+            width: 320px;
             max-height: 85vh;
             overflow-y: auto;
             background: white;
             border-radius: 8px;
             box-shadow: 0 4px 12px rgba(0,0,0,0.2);
             z-index: 1000;
-            display: none; /* 默认隐藏 */
+            display: none;
         }
         
+        /* 高德原生面板样式覆盖 */
         #route-panel .amap-call { background-color: #2563eb; }
-        #route-panel .amap-lib-transfer { border-radius: 4px; }
+        #route-panel .amap-lib-transfer, 
+        #route-panel .amap-lib-driving,
+        #route-panel .amap-lib-riding { 
+            border-radius: 4px; 
+        }
         
         /* 关闭按钮 */
         .close-route-btn {
             position: absolute;
             top: 5px;
             right: 5px;
-            background: #eee;
+            background: #f3f4f6;
             border: none;
             width: 24px;
             height: 24px;
@@ -145,8 +164,10 @@
             text-align: center;
             color: #666;
             z-index: 1001;
+            padding: 0;
+            margin: 0;
         }
-        .close-route-btn:hover { background: #ddd; color: #333; }
+        .close-route-btn:hover { background: #e5e7eb; color: #333; }
         
         @media (max-width: 480px) {
             .control-panel {
@@ -168,9 +189,9 @@
 
 <div id="container"></div>
 
-<!-- 公交路线面板 -->
+<!-- 路线面板 (用于承载导航结果) -->
 <div id="route-panel">
-    <button class="close-route-btn" onclick="closeRoutePanel()" title="关闭">×</button>
+    <button class="close-route-btn" onclick="closeRoutePanel()" title="关闭面板">×</button>
     <div id="route-content"></div>
 </div>
 
@@ -178,7 +199,6 @@
 <div class="control-panel">
     <div class="panel-header">
         <span>📸 扫街随机选点</span>
-        <!-- 移除详细的状态文字，因为不再加载复杂数据 -->
         <span style="font-size:12px; font-weight:normal; color:#666;">
             <span id="data-status-dot" class="status-badge status-ready"></span>
             <span id="data-status-text">就绪</span>
@@ -190,8 +210,6 @@
         🛰️ 开启卫星实景图
     </label>
 
-    <!-- 移除了行政区选择列表 -->
-
     <div class="section-title">选点范围设置</div>
     <select id="distance-select">
         <option value="-1">无限制 (当前地图视野内随机)</option>
@@ -201,15 +219,19 @@
         <option value="10000">10 公里内</option>
     </select>
 
-    <!-- 默认启用，无需等待数据 -->
     <button id="locate-btn" onclick="startRandomSelection()">🎲 开始随机选点</button>
 
     <div id="result-box" class="result-box">
         <div class="result-title">推荐地点：</div>
         <div class="result-addr" id="result-address">...</div>
         <div style="font-size:12px; color:#666; margin-top:5px;">距您约 <span id="result-distance">-</span> 米</div>
-        <!-- 公交按钮 -->
-        <button class="transit-btn" onclick="planBusRoute()">🚌 查看公交/地铁路线</button>
+        
+        <!-- 导航按钮组 -->
+        <div class="route-btn-group">
+            <button class="btn-transit" onclick="planRoute('transit')" title="公交地铁">🚌 公交</button>
+            <button class="btn-riding" onclick="planRoute('riding')" title="骑行导航">🚲 骑行</button>
+            <button class="btn-driving" onclick="planRoute('driving')" title="驾车导航">🚗 驾车</button>
+        </div>
     </div>
 </div>
 
@@ -220,11 +242,8 @@
     }
 </script>
 
-<!-- 加载插件: 
-    - 移除了 AMap.DistrictSearch, AMap.DistrictLayer
-    - 保留了 GeometryUtil, Geolocation, Geocoder, ToolBar, Scale, Satellite, Transfer
--->
-<script type="text/javascript" src="https://webapi.amap.com/maps?v=2.0&key=43ac1e3a18e5e369343f375d3d014c4e&plugin=AMap.GeometryUtil,AMap.Geolocation,AMap.Geocoder,AMap.ToolBar,AMap.Scale,AMap.TileLayer.Satellite,AMap.Transfer"></script>
+<!-- 加载插件: 增加 AMap.Driving (驾车) 和 AMap.Riding (骑行) -->
+<script type="text/javascript" src="https://webapi.amap.com/maps?v=2.0&key=43ac1e3a18e5e369343f375d3d014c4e&plugin=AMap.GeometryUtil,AMap.Geolocation,AMap.Geocoder,AMap.ToolBar,AMap.Scale,AMap.TileLayer.Satellite,AMap.Transfer,AMap.Driving,AMap.Riding"></script>
 
 <script type="text/javascript">
     // 全局变量
@@ -234,7 +253,11 @@
     var targetMarker = null;
     var targetPoint = null; 
     var satelliteLayer = null; 
-    var transfer = null; 
+    
+    // 路线规划对象
+    var transfer = null; // 公交
+    var driving = null;  // 驾车
+    var riding = null;   // 骑行
 
     // 检查Key配置
     function checkKeyConfig() {
@@ -261,10 +284,9 @@
 
     function initMap() {
         try {
-            // 创建地图
             map = new AMap.Map('container', {
                 zoom: 11,
-                center: [119.306239, 26.075302], // 默认福州，但可拖动
+                center: [119.306239, 26.075302],
                 viewMode: '2D',
                 resizeEnable: true,
                 showLabel: true 
@@ -273,10 +295,9 @@
             map.addControl(new AMap.Scale());
             map.addControl(new AMap.ToolBar({position: {top: '120px', right: '10px'}}));
 
-            // --- 0. 卫星图层 ---
             satelliteLayer = new AMap.TileLayer.Satellite({ zIndex: 1 });
 
-            // --- 1. 定位 ---
+            // 定位
             var geolocation = new AMap.Geolocation({
                 enableHighAccuracy: true,
                 timeout: 10000,
@@ -301,8 +322,6 @@
                 }
             });
             geolocation.getCurrentPosition();
-
-            // 移除了 loadFuzhouDistricts() 调用
             
         } catch (e) {
             console.error(e);
@@ -320,7 +339,7 @@
         var btn = document.getElementById('locate-btn');
         var resultBox = document.getElementById('result-box');
         
-        closeRoutePanel();
+        closeRoutePanel(); // 关闭并清除之前的路线
 
         var distanceLimit = parseInt(document.getElementById('distance-select').value);
         if (distanceLimit > 0 && !userLocation) {
@@ -333,7 +352,6 @@
         resultBox.style.display = 'none';
         
         if (targetMarker) map.remove(targetMarker);
-        if (transfer) transfer.clear(); 
 
         setTimeout(() => {
             var foundPoint = generateRandomPoint(distanceLimit);
@@ -349,16 +367,14 @@
         }, 50); 
     }
 
-    // 简化的随机点生成逻辑 (纯几何)
+    // 随机点生成逻辑
     function generateRandomPoint(distanceLimit) {
         var point = null;
         var dist = -1;
 
         if (distanceLimit > 0) {
-            // --- 模式A: 距离限制 (圆内随机) ---
-            // 在以 userLocation 为中心，distanceLimit 为半径的圆内生成
-            // 简单估算：1度约111km -> 1米约 1/111000度
-            var rangeDegrees = (distanceLimit / 111000) * 1.5; // 稍微扩大范围用于随机生成，然后过滤
+            // 模式A: 距离限制
+            var rangeDegrees = (distanceLimit / 111000) * 1.5;
             
             for(var i=0; i<50; i++) {
                 var rLng = userLocation.lng + (Math.random() * 2 - 1) * rangeDegrees;
@@ -373,8 +389,7 @@
                 }
             }
         } else {
-            // --- 模式B: 无限制 (视野内随机) ---
-            // 使用当前地图可视范围边界 (Bounds)
+            // 模式B: 视野内随机
             var bounds = map.getBounds();
             var southWest = bounds.getSouthWest();
             var northEast = bounds.getNorthEast();
@@ -398,26 +413,28 @@
         targetPoint = data.pos; 
         var dist = data.dist;
 
+        // 添加标记
         targetMarker = new AMap.Marker({
             position: targetPoint,
             animation: 'AMAP_ANIMATION_DROP',
-            title: '扫街目的地'
+            title: '扫街目的地',
+            label: {
+                content: '<div style="background-color:white; border:1px solid #2563eb; padding:4px 8px; border-radius:4px; font-size:12px; color:#2563eb; font-weight:bold;">📷 推荐扫街点</div>',
+                direction: 'top'
+            }
         });
         map.add(targetMarker);
         
-        // 如果是在视野内随机生成的，就不一定要缩放到包含“我”
-        // 只有当有距离限制，或者距离适中时才自适应
-        if (userLocation && dist > 0 && dist < 20000) {
-            map.setFitView([userMarker, targetMarker], false, [80, 80, 80, 80]);
-        } else {
-            map.setCenter(targetPoint);
-            // 保持当前缩放级别或微调，不要让用户迷失方向
-            // map.setZoom(16); 
+        // 【新增】自动将点位置于视图中心
+        map.setCenter(targetPoint);
+        // 如果当前缩放级别太小(看全城)，则拉近一点；如果已经很近了，就保持不动
+        if (map.getZoom() < 14) {
+             map.setZoom(15);
         }
 
         var geocoder = new AMap.Geocoder();
         geocoder.getAddress(targetPoint, function(status, result) {
-            var addressText = "位置解析失败 (可能是荒野或海洋)";
+            var addressText = "位置解析失败";
             if (status === 'complete' && result.regeocode) {
                 addressText = result.regeocode.formattedAddress;
             }
@@ -428,44 +445,84 @@
         });
     }
 
-    function planBusRoute() {
+    // --- 综合路线规划功能 ---
+    function planRoute(type) {
         if (!userLocation || !targetPoint) {
             alert("缺少起点或终点信息");
             return;
         }
 
         var panel = document.getElementById('route-panel');
+        var content = document.getElementById('route-content');
         panel.style.display = 'block';
-        document.getElementById('route-content').innerHTML = '<div class="loading-text">正在规划公交路线...</div>';
+        
+        // 清除所有现有路线
+        clearAllRoutes();
 
-        if (!transfer) {
-            transfer = new AMap.Transfer({
-                map: map,
-                city: '福州市', // 公交换乘默认城市
-                panel: 'route-content', 
-                policy: AMap.TransferPolicy.LEAST_TIME 
-            });
-        } else {
-            transfer.clear();
+        content.innerHTML = '<div class="loading-text">正在规划路线...</div>';
+
+        if (type === 'transit') {
+            // 公交
+            if (!transfer) {
+                transfer = new AMap.Transfer({
+                    map: map,
+                    city: '福州市', 
+                    panel: 'route-content', 
+                    policy: AMap.TransferPolicy.LEAST_TIME 
+                });
+            }
+            transfer.search(userLocation, targetPoint, handleRouteCallback('公交'));
+            
+        } else if (type === 'driving') {
+            // 驾车
+            if (!driving) {
+                driving = new AMap.Driving({
+                    map: map,
+                    panel: 'route-content'
+                });
+            }
+            driving.search(userLocation, targetPoint, handleRouteCallback('驾车'));
+
+        } else if (type === 'riding') {
+            // 骑行
+            if (!riding) {
+                riding = new AMap.Riding({
+                    map: map,
+                    panel: 'route-content'
+                });
+            }
+            riding.search(userLocation, targetPoint, handleRouteCallback('骑行'));
         }
+    }
 
-        transfer.search(userLocation, targetPoint, function(status, result) {
+    // 路线回调处理闭包
+    function handleRouteCallback(typeName) {
+        return function(status, result) {
             if (status === 'complete') {
-                console.log('规划成功');
+                console.log(typeName + '规划成功');
             } else {
                 document.getElementById('route-content').innerHTML = 
-                    '<div class="error-text">路线规划失败<br>建议步行或该区域无数据</div>';
+                    '<div class="error-text">' + typeName + '规划失败<br>距离太近或无数据</div>';
             }
-        });
+        };
+    }
+
+    // 清除所有路线实例
+    function clearAllRoutes() {
+        if (transfer) transfer.clear();
+        if (driving) driving.clear();
+        if (riding) riding.clear();
     }
 
     function closeRoutePanel() {
         var panel = document.getElementById('route-panel');
         panel.style.display = 'none';
-        if (transfer) transfer.clear(); 
+        
+        clearAllRoutes();
+
+        // 恢复视野到目标点
         if (targetMarker) {
-             if (userLocation && map.getZoom() > 10) map.setFitView([userMarker, targetMarker], false, [80, 80, 80, 80]);
-             else map.setCenter(targetMarker.getPosition());
+             map.setCenter(targetMarker.getPosition());
         }
     }
 </script>
