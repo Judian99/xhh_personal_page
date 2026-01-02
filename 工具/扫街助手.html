@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="initial-scale=1.0, user-scalable=no, width=device-width, viewport-fit=cover">
-    <title>📷 摄影扫街</title>
+    <title>📷 摄影扫街随机选点器</title>
     <style>
         html, body, #container {
             width: 100%;
@@ -50,10 +50,11 @@
             overflow-y: auto;
             backdrop-filter: blur(10px);
             transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            /* 隐藏时的状态 (向左滑出) */
             transform: translateX(0);
             opacity: 1;
             pointer-events: auto;
+            display: flex;
+            flex-direction: column;
         }
 
         .control-panel.hidden {
@@ -72,7 +73,6 @@
             justify-content: space-between;
         }
         
-        /* 面板内的关闭按钮 */
         .panel-close-btn {
             background: #f3f4f6;
             border: none;
@@ -87,7 +87,6 @@
             font-size: 18px;
         }
 
-        /* 卫星图开关 */
         .layer-toggle {
             display: flex;
             align-items: center;
@@ -112,7 +111,6 @@
             letter-spacing: 0.5px;
         }
 
-        /* 优化表单控件 */
         select {
             width: 100%;
             padding: 12px;
@@ -148,7 +146,6 @@
         #locate-btn:hover { background-color: #1d4ed8; }
         #locate-btn:disabled { background-color: #9ca3af; box-shadow: none; cursor: not-allowed; }
 
-        /* 路线按钮组 */
         .route-btn-group {
             display: flex;
             gap: 8px;
@@ -165,7 +162,6 @@
         .btn-riding { background-color: #d97706; }
         .btn-driving { background-color: #4f46e5; }
         
-        /* 唤起APP按钮 */
         .btn-app {
             background-color: #ea580c; 
             margin-top: 8px;
@@ -187,6 +183,21 @@
         
         .status-badge { display: inline-block; width: 6px; height: 6px; border-radius: 50%; margin-right: 6px; vertical-align: middle; }
         .status-ready { background-color: #10b981; }
+
+        /* --- 底部开发者信息 --- */
+        .footer-info {
+            margin-top: 20px;
+            padding-top: 15px;
+            border-top: 1px solid #e5e7eb;
+            font-size: 12px;
+            color: #9ca3af;
+            text-align: center;
+            line-height: 1.6;
+        }
+        .footer-info strong {
+            color: #6b7280;
+            font-weight: 600;
+        }
 
         /* --- 右侧路线详情面板 --- */
         #route-panel {
@@ -220,42 +231,30 @@
             border: none;
         }
 
-        /* --- 📱 移动端适配 (Bottom Sheet 风格) --- */
+        /* --- 📱 移动端适配 --- */
         @media (max-width: 480px) {
-            /* 悬浮按钮位置调整 */
             .show-menu-btn {
                 top: auto;
-                bottom: 30px; /* 放在底部，方便单手点 */
+                bottom: 30px;
                 left: 50%;
                 transform: translateX(-50%);
                 box-shadow: 0 4px 12px rgba(0,0,0,0.2);
             }
-
-            /* 移动端控制面板：底部弹出 */
             .control-panel {
                 top: auto;
                 bottom: 20px;
                 left: 15px;
-                width: calc(100% - 30px); /* 两边留空 */
-                box-sizing: border-box;
+                width: calc(100% - 30px);
                 padding: 20px;
-                
-                /* 隐藏时的状态 (向下沉底) */
                 transform: translateY(0);
-                opacity: 1;
             }
-
             .control-panel.hidden {
                 transform: translateY(120%);
-                opacity: 0;
             }
-
-            /* 增大点击区域 */
             select, button {
                 padding: 14px;
-                font-size: 16px; /* 防止iOS自动缩放 */
+                font-size: 16px;
             }
-
             #route-panel {
                 top: 10px;
                 right: 10px;
@@ -269,7 +268,6 @@
 
 <div id="container"></div>
 
-<!-- 唤起菜单按钮 (初始隐藏，面板关闭时显示) -->
 <button id="show-menu-btn" class="show-menu-btn" onclick="toggleMenu(true)">
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
         <line x1="3" y1="12" x2="21" y2="12"></line>
@@ -279,13 +277,11 @@
     设置 / 重新选点
 </button>
 
-<!-- 路线详情面板 -->
 <div id="route-panel">
     <button class="close-route-btn" onclick="closeRoutePanel()">×</button>
     <div id="route-content"></div>
 </div>
 
-<!-- 控制面板 -->
 <div class="control-panel" id="main-panel">
     <div class="panel-header">
         <span>📸 扫街选点器</span>
@@ -299,7 +295,7 @@
 
     <label class="layer-toggle">
         <input type="checkbox" id="satellite-checkbox" onchange="toggleSatellite()">
-        🛰️ 开启卫星实景图
+        🛰️ 开启卫星图
     </label>
 
     <div class="section-title">选点范围设置</div>
@@ -318,14 +314,22 @@
     <div id="result-box" class="result-box">
         <div class="result-title">📍 推荐地点：</div>
         <div class="result-addr" id="result-address">...</div>
-        <div style="font-size:13px; color:#6b7280; margin-top:5px;">距您约 <span id="result-distance">-</span> 米</div>
+        <div style="font-size:13px; color:#6b7280; margin-top:5px;">
+            <span id="result-distance-label">直线距离</span>：<span id="result-distance">-</span> 米
+        </div>
         
         <div class="route-btn-group">
             <button class="btn-transit" onclick="planRoute('transit')">🚌 公交</button>
             <button class="btn-riding" onclick="planRoute('riding')">🚲 骑行</button>
             <button class="btn-driving" onclick="planRoute('driving')">🚗 驾车</button>
         </div>
-        <button class="btn-app" onclick="openAmapApp()">🚀 高德APP导航</button>
+        <button class="btn-app" onclick="openAmapApp()">🚀 唤起高德APP导航</button>
+    </div>
+
+    <!-- 底部开发者信息 -->
+    <div class="footer-info">
+        <div>开发者：<strong>句读</strong></div>
+        <div>专用群：<strong>拍遍福州的垃圾桶🗑️</strong></div>
     </div>
 </div>
 
@@ -347,19 +351,19 @@
     var satelliteLayer = null; 
     var transfer = null; 
     var driving = null;  
-    var riding = null;   
+    var riding = null;
+    var geocoder = null;
+    var distanceCalculator = null; // 用于计算距离的驾车实例
 
-    // 菜单切换逻辑
     function toggleMenu(show) {
         var panel = document.getElementById('main-panel');
         var showBtn = document.getElementById('show-menu-btn');
-        
         if (show) {
             panel.classList.remove('hidden');
             showBtn.style.display = 'none';
         } else {
             panel.classList.add('hidden');
-            showBtn.style.display = 'flex'; // 显示悬浮按钮
+            showBtn.style.display = 'flex';
         }
     }
 
@@ -395,10 +399,17 @@
             });
 
             map.addControl(new AMap.Scale());
-            // 调整工具条位置，避免遮挡悬浮按钮
             map.addControl(new AMap.ToolBar({position: {top: '80px', right: '10px'}}));
 
             satelliteLayer = new AMap.TileLayer.Satellite({ zIndex: 1 });
+
+            geocoder = new AMap.Geocoder({
+                extensions: 'all',
+                radius: 1000 
+            });
+
+            // 初始化一个不带panel的驾车实例，仅用于计算距离
+            distanceCalculator = new AMap.Driving({});
 
             var geolocation = new AMap.Geolocation({
                 enableHighAccuracy: true,
@@ -450,38 +461,45 @@
         }
 
         btn.disabled = true;
-        btn.innerText = "生成中...";
+        btn.innerText = "智能寻点中...";
         resultBox.style.display = 'none';
         
         if (targetMarker) map.remove(targetMarker);
-
-        // 1. 自动隐藏菜单，让用户看地图
         toggleMenu(false);
 
-        setTimeout(() => {
-            var foundPoint = generateRandomPoint(distanceLimit);
+        let foundData = null;
+        let maxAttempts = 8;
+        
+        for (let i = 0; i < maxAttempts; i++) {
+            let candidate = generateGeometricCandidate(distanceLimit);
+            if (!candidate) continue;
+
+            let isValid = await checkPointValidity(candidate.pos);
             
-            btn.disabled = false;
-            btn.innerText = "🎲 开始随机选点";
-            
-            if (foundPoint) {
-                showResult(foundPoint);
-            } else {
-                alert("生成失败，请重试");
-                toggleMenu(true); // 失败了就打开菜单让用户重试
+            if (isValid) {
+                foundData = candidate;
+                break;
             }
-        }, 300); 
+        }
+
+        btn.disabled = false;
+        btn.innerText = "🎲 开始随机选点";
+        
+        if (foundData) {
+            showResult(foundData);
+        } else {
+            alert("未能在当前范围内找到合适的陆地位置，请重试或扩大范围。");
+            toggleMenu(true);
+        }
     }
 
-    function generateRandomPoint(distanceLimit) {
+    function generateGeometricCandidate(distanceLimit) {
         var point = null;
         var dist = -1;
 
         if (distanceLimit > 0) {
-            // 距离估算：1度 ≈ 111km
             var rangeDegrees = (distanceLimit / 111000) * 1.5;
-            
-            for(var i=0; i<50; i++) {
+            for(var i=0; i<20; i++) {
                 var rLng = userLocation.lng + (Math.random() * 2 - 1) * rangeDegrees;
                 var rLat = userLocation.lat + (Math.random() * 2 - 1) * rangeDegrees;
                 var p = new AMap.LngLat(rLng, rLat);
@@ -506,16 +524,43 @@
                 dist = AMap.GeometryUtil.distance(userLocation, point);
             }
         }
-
-        if (point) {
-            return { pos: point, dist: dist };
-        }
+        
+        if (point) return { pos: point, dist: dist };
         return null;
+    }
+
+    function checkPointValidity(lnglat) {
+        return new Promise((resolve) => {
+            if (!geocoder) {
+                resolve(true); 
+                return;
+            }
+            
+            geocoder.getAddress(lnglat, function(status, result) {
+                if (status === 'complete' && result.regeocode) {
+                    var roads = result.regeocode.roads || [];
+                    var pois = result.regeocode.pois || [];
+                    var aois = result.regeocode.aois || [];
+
+                    if (roads.length > 0 || pois.length > 0 || aois.length > 0) {
+                        if (roads.length > 0 && roads[0].distance > 500 && pois.length === 0) {
+                             resolve(false); 
+                        } else {
+                             resolve(true);
+                        }
+                    } else {
+                        resolve(false);
+                    }
+                } else {
+                    resolve(false); 
+                }
+            });
+        });
     }
 
     function showResult(data) {
         targetPoint = data.pos; 
-        var dist = data.dist;
+        var linearDist = data.dist; // 直线距离
 
         targetMarker = new AMap.Marker({
             position: targetPoint,
@@ -532,18 +577,36 @@
         map.setCenter(targetPoint);
         if (map.getZoom() < 14) map.setZoom(15);
 
-        // 填充结果面板数据
-        var geocoder = new AMap.Geocoder();
+        // 显示基本信息
+        document.getElementById('result-box').style.display = 'block';
+        document.getElementById('result-distance-label').innerText = "直线距离";
+        document.getElementById('result-distance').innerText = linearDist > 0 ? Math.round(linearDist) : "未知";
+
+        // 地址解析
         geocoder.getAddress(targetPoint, function(status, result) {
             var addressText = "位置解析失败";
             if (status === 'complete' && result.regeocode) {
                 addressText = result.regeocode.formattedAddress;
             }
-            
-            document.getElementById('result-box').style.display = 'block';
             document.getElementById('result-address').innerText = addressText;
-            document.getElementById('result-distance').innerText = dist > 0 ? Math.round(dist) : "未知";
         });
+
+        // 【新增】计算真实路程距离
+        if (userLocation && distanceCalculator) {
+            document.getElementById('result-distance-label').innerText = "路程计算中...";
+            distanceCalculator.search(userLocation, targetPoint, function(status, result) {
+                if (status === 'complete') {
+                    if (result.routes && result.routes.length > 0) {
+                        var routeDist = result.routes[0].distance; // 米
+                        document.getElementById('result-distance-label').innerText = "🚗 路程约";
+                        document.getElementById('result-distance').innerText = routeDist;
+                    }
+                } else {
+                    // 如果计算失败（比如太远或跨海），保持直线距离显示，或显示失败
+                    document.getElementById('result-distance-label').innerText = "直线距离";
+                }
+            });
+        }
     }
 
     function planRoute(type) {
@@ -552,15 +615,11 @@
             return;
         }
         
-        // 规划路线时，先隐藏主菜单，显示路线面板
         toggleMenu(false); 
-
         var panel = document.getElementById('route-panel');
         var content = document.getElementById('route-content');
         panel.style.display = 'block';
-        
         clearAllRoutes();
-
         content.innerHTML = '<div class="loading-text">正在规划路线...</div>';
 
         if (type === 'transit') {
@@ -573,7 +632,6 @@
                 });
             }
             transfer.search(userLocation, targetPoint, handleRouteCallback('公交'));
-            
         } else if (type === 'driving') {
             if (!driving) {
                 driving = new AMap.Driving({
@@ -582,7 +640,6 @@
                 });
             }
             driving.search(userLocation, targetPoint, handleRouteCallback('驾车'));
-
         } else if (type === 'riding') {
             if (!riding) {
                 riding = new AMap.Riding({
@@ -594,7 +651,6 @@
         }
     }
     
-    // 唤起高德APP导航
     function openAmapApp() {
         if (!targetPoint) {
             alert("请先生成一个随机点");
@@ -604,19 +660,13 @@
         if (confirm("即将离开网页，唤起高德地图APP进行导航，是否继续？")) {
             var toLng = targetPoint.lng;
             var toLat = targetPoint.lat;
-            
-            // 构造基础URL (包含终点信息)
-            // 官方文档参数: to=经度,纬度,名称
             var url = `https://uri.amap.com/navigation?to=${toLng},${toLat},推荐扫街点&mode=car&policy=1&src=randomwalker&coordinate=gaode&callnative=1`;
             
-            // 【新增】同步起点数据：如果网页端已获取定位，将其作为起点传给APP
-            // 避免APP打开后重新定位导致起点漂移
             if (userLocation) {
                 var fromLng = userLocation.lng;
                 var fromLat = userLocation.lat;
                 url += `&from=${fromLng},${fromLat},我的位置`;
             }
-
             window.location.href = url;
         }
     }
